@@ -1,0 +1,72 @@
+# Python
+venv/
+env/
+ENV/
+.venv/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Frontend
+omni-calendar-ui/node_modules/
+omni-calendar-ui/dist/
+omni-calendar-ui/.vite/
+*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose*.yml
+.dockerignore
+
+# Documentation / metadata
+docs/
+README.md
+
+# Audit / plans
+.windsurf/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Coverage / test artifacts
+htmlcov/
+.coverage
+.coverage.*
+*,cover
+
+# Secrets
+.env
+.env.*
+!.env.example
+secrets/

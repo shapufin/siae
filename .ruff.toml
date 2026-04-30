@@ -1,0 +1,33 @@
+# Ruff configuration for Omni Calendar backend
+line-length = 100
+target-version = "py312"
+
+exclude = [
+    "**/migrations/*",
+    "**/__pycache__/*",
+]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "DJ",  # flake8-django
+]
+ignore = [
+    "DJ001", # Avoid nullable CharField/TextField
+]
+
+[lint.isort]
+known-first-party = ["calendar_app", "omni_calendar"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
