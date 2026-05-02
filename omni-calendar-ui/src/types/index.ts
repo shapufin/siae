@@ -157,8 +157,20 @@ export interface AdminDayPanelProps {
     userIds: number[],
     type: "WORK_HOURS" | "STANDBY",
     standbyRole?: "PRIMARY" | "BACKUP",
-    standbyPhone?: string
+    standbyPhone?: string,
+    // For per-technology autopopulate: maps techId -> userIds for that specific tech only
+    techUserMapping?: Map<number, number[]>,
   }) => void;
+  onFixDefaults?: (data: {
+    date_start: string;
+    date_end: string;
+    technology_ids: number[];
+  }) => void;
+}
+
+export interface TechUserMapping {
+  techId: number;
+  userIds: number[];
 }
 
 export interface Vacation {

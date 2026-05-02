@@ -414,6 +414,85 @@ class ShiftViewSet(viewsets.ModelViewSet):
         # fallback
         return Response({"deleted": 0, "detail": f"Unknown assignment type: {assignment_type}"}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=["post"])
+    def fix_defaults(self, request: Any) -> Response:
+        """
+        For each shift in the date range and technology set:
+          - Remove WORK_HOURS assignments for users whose default technology is NOT this one.
+          - Add WORK_HOURS assignments for users whose default technology IS this one (if missing).
+        Returns counts of removed and added assignments.
+        """
+        technology_ids = request.data.get("technology_ids", [])
+        date_start = request.data.get("date_start")
+        date_end = request.data.get("date_end")
+
+        if not technology_ids:
+            return Response({"removed": 0, "added": 0}, status=status.HTTP_200_OK)
+
+        from .models import UserTechnology
+
+        removed_count = 0
+        added_count = 0
+
+        with transaction.atomic():
+            # Get all default users for selected technologies once
+            default_users_by_tech = {}
+            user_techs = UserTechnology.objects.filter(
+                technology_id__in=technology_ids,
+                is_default=True
+            ).values_list("technology_id", "user_id")
+            
+            for tech_id, user_id in user_techs:
+                if tech_id not in default_users_by_tech:
+                    default_users_by_tech[tech_id] = set()
+                default_users_by_tech[tech_id].add(user_id)
+
+            qs = Shift.objects.filter(technology_id__in=technology_ids)
+            if not request.user.is_admin and request.user.role != "CR":
+                qs = qs.filter(technology__role=request.user.role)
+
+            if date_start:
+                qs = qs.filter(date__gte=date_start)
+            if date_end:
+                qs = qs.filter(date__lte=date_end)
+
+            # Prefetch assignments for efficiency
+            shifts = qs.prefetch_related("assignments", "assignments__user")
+
+            for shift in shifts:
+                # Get current WORK_HOURS assignment user IDs
+                current_work_hours = {
+                    a.user_id: a
+                    for a in shift.assignments.all()
+                    if a.type == "WORK_HOURS"
+                }
+
+                # Find users who have this technology as default
+                default_user_ids = default_users_by_tech.get(shift.technology_id, set())
+
+                # Remove non-default users
+                for user_id, assignment in current_work_hours.items():
+                    if user_id not in default_user_ids:
+                        assignment.delete()
+                        removed_count += 1
+
+                # Add missing default users
+                already_assigned = set(current_work_hours.keys())
+                for user_id in default_user_ids:
+                    if user_id not in already_assigned:
+                        Assignment.objects.create(
+                            shift=shift,
+                            user_id=user_id,
+                            type="WORK_HOURS"
+                        )
+                        added_count += 1
+
+        logger.info(
+            f"Fix defaults: {removed_count} removed, {added_count} added by user {request.user} "
+            f"for techs {technology_ids} from {date_start} to {date_end}"
+        )
+        return Response({"removed": removed_count, "added": added_count}, status=status.HTTP_200_OK)
+
 
 class AssignmentViewSet(viewsets.ModelViewSet):
     queryset = Assignment.objects.all()

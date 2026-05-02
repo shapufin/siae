@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { LayoutList, Layout, X, CalendarDays, Trash2, Filter, Users, Check, Search, ChevronDown, Info } from "lucide-react";
 import { ShiftColumn } from "./ShiftColumn";
@@ -27,13 +27,25 @@ export function AdminDayPanel({
   onLayoutChange,
   onDeleteShifts,
   onBulkAssign,
+  onFixDefaults,
 }: AdminDayPanelProps) {
   const [selectedTechIds, setSelectedTechIds] = useState<number[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [bulkAction, setBulkAction] = useState<"WORK_HOURS" | "STANDBY_PRIMARY" | "STANDBY_BACKUP">("WORK_HOURS");
+  const [autoPopulateDefaultTech, setAutoPopulateDefaultTech] = useState(false);
+  const [techUserMapping, setTechUserMapping] = useState<Map<number, number[]>>(new Map());
   const [deleteAllDays, setDeleteAllDays] = useState(false);
+  
+
+  // Reset autopopulate when not WORK_HOURS or no techs selected
+  useEffect(() => {
+    if (bulkAction !== "WORK_HOURS" || selectedTechIds.length === 0) {
+      setAutoPopulateDefaultTech(false);
+      setTechUserMapping(new Map());
+    }
+  }, [bulkAction, selectedTechIds.length]);
   const { client_role_label, consultant_role_label } = useSiteSettings();
 
   // Find all technologies present across selected days
@@ -58,6 +70,7 @@ export function AdminDayPanel({
     if (isAdmin || isSuperuser) return users;
     return users.filter(u => u.role === userRole);
   }, [users, isAdmin, isSuperuser, userRole]);
+
 
   if (selectedDates.length === 0) {
     return (
@@ -437,9 +450,50 @@ export function AdminDayPanel({
 
           {/* Assignment Type - 3 Button System */}
           <div className="space-y-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-              3. Assignment Type
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                3. Assignment Type
+              </h4>
+              {bulkAction === "WORK_HOURS" && selectedTechIds.length > 0 && (
+                <button
+                  onClick={() => {
+                    setAutoPopulateDefaultTech(!autoPopulateDefaultTech);
+                    if (!autoPopulateDefaultTech) {
+                      // Build per-technology mapping: each user goes to their DEFAULT tech only
+                      const mapping = new Map<number, number[]>();
+                      const allSelectedUserIds: number[] = [];
+                      
+                      selectedTechIds.forEach(techId => {
+                        const usersForThisTech = users?.filter(u => 
+                          u.technologies?.some(t => 
+                            t.is_default && t.technology.id === techId
+                          )
+                        ).map(u => u.id) || [];
+                        
+                        if (usersForThisTech.length > 0) {
+                          mapping.set(techId, usersForThisTech);
+                          allSelectedUserIds.push(...usersForThisTech);
+                        }
+                      });
+                      
+                      setTechUserMapping(mapping);
+                      setSelectedUserIds([...new Set(allSelectedUserIds)]); // dedupe
+                    } else {
+                      setTechUserMapping(new Map());
+                      setSelectedUserIds([]);
+                    }
+                  }}
+                  className={`flex items-center gap-1 text-[9px] font-bold transition-all ${
+                    autoPopulateDefaultTech 
+                      ? "text-primary hover:text-primary/80" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Users className="h-3 w-3" />
+                  {autoPopulateDefaultTech ? "Clear Autopopulate" : "Autopopulate Defaults"}
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-1.5">
               <button
                 onClick={() => setBulkAction("WORK_HOURS")}
@@ -480,6 +534,24 @@ export function AdminDayPanel({
                 </span>
               </button>
             </div>
+            {bulkAction === "WORK_HOURS" && autoPopulateDefaultTech && selectedUserIds.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[9px] text-blue-600 font-medium">
+                  {selectedUserIds.length} users will be assigned to their default technology:
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from(techUserMapping.entries()).map(([techId, userIds]) => {
+                    const tech = technologies?.find(t => t.id === techId);
+                    return (
+                      <span key={techId} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-[8px] text-blue-700">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tech?.color_code }} />
+                        {tech?.name}: {userIds.length}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {selectedUserIds.length > 1 && bulkAction === "STANDBY_PRIMARY" && (
               <p className="text-[9px] text-orange-600 font-medium">
                 Note: First selected user will be PRIMARY, others will be BACKUP
@@ -501,8 +573,14 @@ export function AdminDayPanel({
                     userIds: selectedUserIds,
                     type,
                     standbyRole,
+                    // Pass per-technology mapping when autopopulate is active (for Work Hours only)
+                    techUserMapping: (autoPopulateDefaultTech && type === "WORK_HOURS" && techUserMapping.size > 0) 
+                      ? techUserMapping 
+                      : undefined,
                   });
                   setSelectedUserIds([]);
+                  setTechUserMapping(new Map());
+                  setAutoPopulateDefaultTech(false);
                 }
               }}
               className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
@@ -510,6 +588,26 @@ export function AdminDayPanel({
               <Check className="h-3.5 w-3.5" />
               Apply Bulk Assignment
             </button>
+
+            {bulkAction === "WORK_HOURS" && selectedTechIds.length > 0 && selectedDates.length > 0 && (
+              <button
+                disabled={selectedTechIds.length === 0}
+                onClick={() => {
+                  const dates = selectedDates.sort();
+                  if (confirm(`Fix defaults for ${selectedTechIds.length} tech(s) across ${selectedDates.length} day(s)?\n\nThis will:\n- REMOVE users assigned to wrong technologies\n- ADD missing default users\n- Only affects WORK HOURS`)) {
+                    onFixDefaults?.({
+                      date_start: dates[0],
+                      date_end: dates[dates.length - 1],
+                      technology_ids: selectedTechIds,
+                    });
+                  }
+                }}
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Fix Defaults
+              </button>
+            )}
 
             <div className="flex flex-col gap-4 pt-3 border-t border-border/60">
               <div className="space-y-3">

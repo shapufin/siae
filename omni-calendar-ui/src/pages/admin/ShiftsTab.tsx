@@ -174,13 +174,14 @@ export function ShiftsTab() {
   });
 
   const bulkAssignUsers = useMutation({
-    mutationFn: async ({ dateStrs, techIds, userIds, type, standbyRole, standbyPhone }: { 
+    mutationFn: async ({ dateStrs, techIds, userIds, type, standbyRole, standbyPhone, techUserMapping }: { 
       dateStrs: string[], 
       techIds: number[], 
       userIds: number[], 
       type: "WORK_HOURS" | "STANDBY",
       standbyRole?: "PRIMARY" | "BACKUP",
-      standbyPhone?: string
+      standbyPhone?: string,
+      techUserMapping?: Map<number, number[]>,
     }) => {
       for (const dateStr of dateStrs) {
         for (const techId of techIds) {
@@ -191,8 +192,14 @@ export function ShiftsTab() {
           });
           const shift = res.data as Shift;
 
-          // 2. Assign users
-          for (const uid of userIds) {
+          // 2. Determine which users to assign to this tech
+          // If techUserMapping provided, use per-tech mapping; otherwise assign all users
+          const usersForThisTech = techUserMapping?.has(techId) 
+            ? techUserMapping.get(techId)! 
+            : userIds;
+
+          // 3. Assign users
+          for (const uid of usersForThisTech) {
             const user = users?.find(u => u.id === uid);
             const assignRes = await api.post("/assignments/", {
               shift: shift.id,
@@ -217,6 +224,27 @@ export function ShiftsTab() {
       setSelectedDates(new Set());
     },
     onError: (err) => showToast(getApiErrorMessage(err, "Failed bulk assignment"), "error"),
+  });
+
+  // Fix defaults: removes wrong users and adds missing default users for WORK_HOURS
+  const fixDefaults = useMutation({
+    mutationFn: async ({ date_start, date_end, technology_ids }: {
+      date_start: string;
+      date_end: string;
+      technology_ids: number[];
+    }) => {
+      const res = await api.post("/shifts/fix_defaults/", {
+        date_start,
+        date_end,
+        technology_ids,
+      });
+      return res.data as { removed: number; added: number };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      showToast(`Fixed: ${data.removed} removed, ${data.added} added`, "success");
+    },
+    onError: (err) => showToast(getApiErrorMessage(err, "Failed to fix defaults"), "error"),
   });
 
   const { deleteShift } = useShiftMutations();
@@ -294,15 +322,6 @@ export function ShiftsTab() {
           <h3 className="text-xl font-bold tracking-tight">Shift Management</h3>
           <p className="text-sm text-muted-foreground">Schedule shifts and manage team assignments across technologies.</p>
         </div>
-        {canManage && (
-          <button
-            onClick={() => { setShowAddForm(!showAddForm); setEditingShift(null); }}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-          >
-            {showAddForm ? <X className="h-4 w-4" /> : <CalendarRange className="h-4 w-4" />}
-            {showAddForm ? "Cancel" : "Create Shifts"}
-          </button>
-        )}
       </div>
 
       {showAddForm && (
@@ -595,10 +614,10 @@ export function ShiftsTab() {
             onLayoutChange={setLayout}
             onDeleteShifts={(dateStrs, techIds, allDays, assignmentType) => bulkDeleteShifts.mutate({ dateStrs, techIds, allDays, assignmentType })}
             onBulkAssign={(data) => bulkAssignUsers.mutate(data)}
+            onFixDefaults={(data) => fixDefaults.mutate(data)}
           />
         </div>
       </div>
     </div>
   );
 }
-
