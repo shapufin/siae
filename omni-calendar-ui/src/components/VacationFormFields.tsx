@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Shield, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, parseISO } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { filterByRole, getDisplayName, VACATION_TYPE_OPTIONS } from "../lib/utils";
 import type { User, Vacation } from "../types";
 
@@ -33,9 +33,11 @@ function DatePicker({ value, onChange, label }: DatePickerProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
+    start: startOfWeek(monthStart, { weekStartsOn: 1 }),
+    end: endOfWeek(monthEnd, { weekStartsOn: 1 }),
   });
 
   const handleSelectDate = (date: Date) => {
@@ -79,7 +81,7 @@ function DatePicker({ value, onChange, label }: DatePickerProps) {
               </button>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-xs">
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+              {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
                 <div key={day} className="text-muted-foreground font-medium py-1">
                   {day}
                 </div>

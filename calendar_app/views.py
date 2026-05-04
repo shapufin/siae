@@ -337,7 +337,15 @@ class ShiftViewSet(viewsets.ModelViewSet):
         date = self.request.query_params.get("date")
         if date:
             queryset = queryset.filter(date=date)
-            user_qs = User.objects.with_vacation_status(date)
+            # Annotate users with assignment status for OTHER technologies on this same day
+            user_qs = User.objects.with_vacation_status(date).annotate(
+                is_assigned=Exists(
+                    Assignment.objects.filter(
+                        user=OuterRef("pk"),
+                        shift__date=date
+                    ).exclude(shift__technology=OuterRef("assignments__shift__technology"))
+                )
+            )
             queryset = queryset.prefetch_related(
                 Prefetch(
                     "assignments",
@@ -358,16 +366,31 @@ class ShiftViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(technology_id=technology)
         return queryset.order_by("-date", "technology__name")
 
+    def get_serializer_context(self) -> dict[str, Any]:
+        context = super().get_serializer_context()
+        date = self.request.query_params.get("date")
+        if date:
+            context["date"] = date
+        return context
+
     @action(detail=True, methods=["get"])
     def assignments(self, request: Any, pk: int | None = None) -> Response:
         shift = self.get_object()
         date = shift.date
-        user_qs = User.objects.with_vacation_status(date)
+        # Annotate users with assignment status for OTHER technologies on this same day
+        user_qs = User.objects.with_vacation_status(date).annotate(
+            is_assigned=Exists(
+                Assignment.objects.filter(
+                    user=OuterRef("pk"),
+                    shift__date=date
+                ).exclude(shift__technology=shift.technology)
+            )
+        )
         assignments = shift.assignments.prefetch_related(
             Prefetch("user", queryset=user_qs),
             "standby_detail"
         )
-        serializer = AssignmentSerializer(assignments, many=True)
+        serializer = AssignmentSerializer(assignments, many=True, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @action(detail=False, methods=["post"])

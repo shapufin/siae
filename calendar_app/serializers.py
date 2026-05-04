@@ -106,6 +106,7 @@ class UserSerializer(serializers.ModelSerializer):
         source="usertechnology_set", many=True, read_only=True
     )
     vacation_status = serializers.SerializerMethodField()
+    is_assigned = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
 
     class Meta:
@@ -124,6 +125,7 @@ class UserSerializer(serializers.ModelSerializer):
             "last_login",
             "technologies",
             "vacation_status",
+            "is_assigned",
             "permissions",
         ]
         read_only_fields = ["role"]
@@ -144,6 +146,11 @@ class UserSerializer(serializers.ModelSerializer):
                 start_date__lte=date, end_date__gte=date
             ).exists()
         return None
+
+    def get_is_assigned(self, obj: CustomUser) -> bool:
+        if hasattr(obj, "is_assigned") and isinstance(obj.is_assigned, bool):
+            return obj.is_assigned
+        return False
 
     def get_permissions(self, obj: CustomUser) -> dict[str, bool]:
         return {

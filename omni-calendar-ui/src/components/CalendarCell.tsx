@@ -1,7 +1,7 @@
 import { format, isSameMonth, isToday } from "date-fns";
 import { ShieldCheck } from "lucide-react";
 import { cn, getDomainColor } from "../lib/utils";
-import { MAX_VISIBLE_SHIFT_STRIPS } from "../lib/constants";
+import { Tooltip } from "../components/ui/tooltip";
 import type { CalendarCellProps } from "../types";
 
 export function CalendarCell({
@@ -18,11 +18,8 @@ export function CalendarCell({
   const today = isToday(date);
 
   const domainOrder = { SIAE: 0, ENG: 1, CR: 2 };
-  const sortedShifts = [...shifts].sort((a, b) => (domainOrder[a.technology.role as keyof typeof domainOrder] ?? 2) - (domainOrder[b.technology.role as keyof typeof domainOrder] ?? 2));
-  const shiftStrips = sortedShifts.slice(0, MAX_VISIBLE_SHIFT_STRIPS);
-  const overflow = sortedShifts.length > MAX_VISIBLE_SHIFT_STRIPS;
-  const totalAssignments = sortedShifts.reduce((acc, s) => acc + s.assignment_count, 0);
-  
+  const totalAssignments = shifts.reduce((acc, s) => acc + s.assignment_count, 0);
+
   // Task 8: Check if any shift on this day has at least one standby assignment
   const hasStandbyReady = shifts.some(s => s.has_standby);
 
@@ -82,25 +79,45 @@ export function CalendarCell({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-1">
-        <div className="flex flex-wrap gap-1">
-          {shiftStrips.map((shift) => (
-            <div
-              key={shift.id}
-              className="h-[4px] flex-1 rounded-full shadow-sm"
-              style={{
-                backgroundColor: getDomainColor(shift.technology.role),
-                opacity: 0.75,
-              }}
-              title={`[${shift.technology.role}] ${shift.technology.name} (${shift.assignment_count} assignments)`}
-            />
+      {/* Domain-grouped summary: always 3 max clean segments */}
+      <div className="mt-auto flex w-full gap-1">
+        {Object.entries(
+          shifts.reduce<Record<string, { techCount: number; assignments: number; techs: string[] }>>((acc, s) => {
+            const r = s.technology.role;
+            if (!acc[r]) acc[r] = { techCount: 0, assignments: 0, techs: [] };
+            acc[r].techCount += 1;
+            acc[r].assignments += s.assignment_count;
+            acc[r].techs.push(`${s.technology.name}: ${s.assignment_count}`);
+            return acc;
+          }, {})
+        )
+          .sort((a, b) => (domainOrder[a[0] as keyof typeof domainOrder] ?? 2) - (domainOrder[b[0] as keyof typeof domainOrder] ?? 2))
+          .map(([role, data]) => (
+            <Tooltip
+              key={role}
+              side="top"
+              content={
+                <div className="space-y-1">
+                  <div className="text-xs font-bold uppercase tracking-wider text-white/90">{role}</div>
+                  <div className="space-y-0.5">
+                    {data.techs.map((t) => (
+                      <div key={t} className="text-[11px] text-white/80">{t}</div>
+                    ))}
+                  </div>
+                  <div className="border-t border-white/20 pt-1 text-[11px] font-semibold text-white">Total: {data.assignments} assignments</div>
+                </div>
+              }
+            >
+              <div
+                className="flex-1 min-w-0 rounded-md px-1 py-0.5 text-center text-[8px] font-black uppercase tracking-tighter text-white shadow-sm cursor-help"
+                style={{ backgroundColor: getDomainColor(role), opacity: 0.9 }}
+              >
+                <span className="opacity-90">{role}</span>
+                <span className="mx-0.5 opacity-60">·</span>
+                <span>{data.assignments}</span>
+              </div>
+            </Tooltip>
           ))}
-        </div>
-        {overflow && (
-          <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-tighter">
-            +{shifts.length - MAX_VISIBLE_SHIFT_STRIPS} others
-          </span>
-        )}
       </div>
     </button>
   );

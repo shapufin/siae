@@ -304,7 +304,7 @@ export function UserCard({ assignmentId, user, type, standbyDetail, dateStr, hid
               )}
             >
               <span className={cn("h-1.5 w-1.5 rounded-full", user.vacation_status ? "bg-destructive" : "bg-success")} />
-              {user.vacation_status ? "Vacation" : "Available"}
+              {user.vacation_status ? "VACATION" : "AVAILABLE"}
             </span>
           )}
 
