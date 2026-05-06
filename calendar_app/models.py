@@ -311,6 +311,20 @@ class SiteSettings(models.Model):
     jwt_access_minutes = models.PositiveIntegerField(default=60)
     jwt_refresh_days = models.PositiveIntegerField(default=7)
 
+    # Announcement Banner Settings
+    announcement_text = models.TextField(blank=True, default="")
+    announcement_enabled = models.BooleanField(default=False)
+    announcement_color = models.CharField(
+        max_length=20,
+        choices=[
+            ("red", "Red"),
+            ("yellow", "Yellow"),
+            ("blue", "Blue"),
+            ("green", "Green"),
+        ],
+        default="red",
+    )
+
     class Meta:
         verbose_name = "Site Settings"
         verbose_name_plural = "Site Settings"

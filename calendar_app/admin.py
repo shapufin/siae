@@ -9,12 +9,49 @@ from .models import (
     Technology,
     UserTechnology,
     Vacation,
+    SiteSettings,
 )
 
 
 class UserTechnologyInline(admin.TabularInline):
     model = UserTechnology
     extra = 1
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ("Brand Settings", {"fields": ("brand_name", "client_role_label", "consultant_role_label")}),
+        (
+            "Announcement Settings",
+            {"fields": ("announcement_enabled", "announcement_text", "announcement_color")},
+        ),
+        (
+            "Email Settings",
+            {
+                "fields": (
+                    "smtp_host",
+                    "smtp_port",
+                    "smtp_user",
+                    "smtp_password",
+                    "smtp_use_tls",
+                    "smtp_from_email",
+                )
+            },
+        ),
+        (
+            "Notification Settings",
+            {"fields": ("notifications_enabled", "notify_on_vacation_change", "notify_on_shift_change")},
+        ),
+        ("Rate Limiting", {"fields": ("anon_throttle_rate", "user_throttle_rate")}),
+        ("JWT Settings", {"fields": ("jwt_access_minutes", "jwt_refresh_days")}),
+    )
+
+    def has_add_permission(self, request):
+        # Only allow one instance of SiteSettings
+        if self.model.objects.exists():
+            return False
+        return super().has_add_permission(request)
 
 
 @admin.register(CustomUser)

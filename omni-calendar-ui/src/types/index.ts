@@ -186,4 +186,7 @@ export interface SiteSettings {
   brand_name: string;
   client_role_label: string;
   consultant_role_label: string;
+  announcement_text?: string;
+  announcement_enabled?: boolean;
+  announcement_color?: "red" | "yellow" | "blue" | "green";
 }

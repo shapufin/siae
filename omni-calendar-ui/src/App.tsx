@@ -1,5 +1,6 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { NotificationBadge } from "./components/NotificationBadge";
 import { CalendarDashboard } from "./pages/CalendarDashboard";
 import { VacationHub } from "./pages/VacationHub";
@@ -107,9 +108,14 @@ function AppHeader() {
 }
 
 function App() {
+  const { announcement_enabled, announcement_text, announcement_color } = useSiteSettings();
+
   return (
     <AuthProvider>
       <div className="min-h-screen bg-background text-foreground">
+        {announcement_enabled && announcement_text && (
+          <AnnouncementBanner text={announcement_text} color={announcement_color} />
+        )}
         <AppHeader />
         <main className="mx-auto max-w-7xl p-4">
           <AppRoutes />

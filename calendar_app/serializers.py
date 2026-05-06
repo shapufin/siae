@@ -609,6 +609,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "notify_on_shift_change",
             "anon_throttle_rate",
             "user_throttle_rate",
+            "announcement_text",
+            "announcement_enabled",
+            "announcement_color",
             "jwt_access_minutes",
             "jwt_refresh_days",
         ]
@@ -640,4 +643,7 @@ class SiteSettingsPublicSerializer(serializers.ModelSerializer):
             "brand_name",
             "client_role_label",
             "consultant_role_label",
+            "announcement_text",
+            "announcement_enabled",
+            "announcement_color",
         ]
