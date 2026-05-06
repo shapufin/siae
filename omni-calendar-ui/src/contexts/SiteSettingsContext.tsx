@@ -7,6 +7,9 @@ const DEFAULT_SETTINGS: SiteSettings = {
   brand_name: "Omni Calendar",
   client_role_label: "Client",
   consultant_role_label: "Consultant",
+  announcement_enabled: false,
+  announcement_text: "",
+  announcement_color: "red",
 };
 
 const SiteSettingsContext = createContext<SiteSettings>(DEFAULT_SETTINGS);

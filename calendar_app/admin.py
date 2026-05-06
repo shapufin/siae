@@ -53,6 +53,19 @@ class SiteSettingsAdmin(admin.ModelAdmin):
             return False
         return super().has_add_permission(request)
 
+    def has_delete_permission(self, request, obj=None):
+        # Prevent deletion of the single instance
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return True if request.user.is_superuser else super().has_change_permission(request, obj)
+
+    def has_view_permission(self, request, obj=None):
+        return True if request.user.is_superuser else super().has_view_permission(request, obj)
+
+    list_display = ["brand_name", "announcement_enabled", "announcement_color"]
+    list_display_links = ["brand_name"]
+
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):

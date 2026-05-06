@@ -15,6 +15,7 @@ import {
   Upload,
   X,
   Check,
+  Megaphone,
 } from "lucide-react";
 import { api, useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -38,6 +39,9 @@ interface SettingsData {
   user_throttle_rate: string;
   jwt_access_minutes: number;
   jwt_refresh_days: number;
+  announcement_enabled: boolean;
+  announcement_text: string;
+  announcement_color: "red" | "yellow" | "blue" | "green";
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -57,6 +61,9 @@ const DEFAULT_SETTINGS: SettingsData = {
   user_throttle_rate: "1000/hour",
   jwt_access_minutes: 60,
   jwt_refresh_days: 7,
+  announcement_enabled: false,
+  announcement_text: "",
+  announcement_color: "red",
 };
 
 export function SettingsTab() {
@@ -286,6 +293,54 @@ export function SettingsTab() {
             <label htmlFor="notif-shift" className="text-sm font-medium">
               Notify on shift assignment changes
             </label>
+          </div>
+        </div>
+      </section>
+
+      {/* Announcement Banner */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Megaphone className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Announcement Banner</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              id="announcement-enabled"
+              type="checkbox"
+              className="h-4 w-4 rounded border-primary"
+              checked={form.announcement_enabled}
+              onChange={(e) => handleChange("announcement_enabled", e.target.checked)}
+            />
+            <label htmlFor="announcement-enabled" className="text-sm font-medium">
+              Enable banner visible on all pages
+            </label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <label className="text-sm font-medium">Banner Text (HTML allowed)</label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={form.announcement_text}
+                onChange={(e) => handleChange("announcement_text", e.target.value)}
+                placeholder="e.g. <strong>Important:</strong> System maintenance tonight."
+                disabled={!form.announcement_enabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Banner Color</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={form.announcement_color}
+                onChange={(e) => handleChange("announcement_color", e.target.value as any)}
+                disabled={!form.announcement_enabled}
+              >
+                <option value="red">Red (Critical)</option>
+                <option value="yellow">Yellow (Warning)</option>
+                <option value="blue">Blue (Info)</option>
+                <option value="green">Green (Success)</option>
+              </select>
+            </div>
           </div>
         </div>
       </section>
