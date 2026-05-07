@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, X, Shield, ShieldCheck, UserPlus, Settings2, Check, Users, Zap, ZapOff, KeyRound, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Trash2, X, Shield, ShieldCheck, UserPlus, Settings2, Check, Users, Zap, ZapOff, KeyRound, RefreshCw, Eye, EyeOff, Loader2 } from "lucide-react";
 import { api, useAuth } from "../../contexts/AuthContext";
 import { useSiteSettings } from "../../contexts/SiteSettingsContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -337,24 +337,29 @@ export function UsersTab() {
             <button
               disabled={!bulkTechId || bulkAssignTech.isPending}
               onClick={() => bulkAssignTech.mutate({ userIds: selectedIds, techId: Number(bulkTechId), isDefault: bulkSetDefault })}
-              className="rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5"
             >
-              Apply Tech
+              {bulkAssignTech.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              {bulkAssignTech.isPending ? "Assigning..." : "Apply Tech"}
             </button>
           </div>
           <div className="h-4 w-px bg-primary/20 hidden sm:block" />
           <div className="flex items-center gap-2">
             <button
+              disabled={bulkSetActive.isPending}
               onClick={() => bulkSetActive.mutate({ userIds: selectedIds, isActive: true })}
-              className="flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-bold text-success hover:bg-success/20"
+              className="flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-bold text-success hover:bg-success/20 disabled:opacity-50"
             >
-              <Zap className="h-3 w-3" /> Activate
+              {bulkSetActive.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              <Zap className="h-3 w-3" /> {bulkSetActive.isPending ? "Activating..." : "Activate"}
             </button>
             <button
+              disabled={bulkSetActive.isPending}
               onClick={() => bulkSetActive.mutate({ userIds: selectedIds, isActive: false })}
-              className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20"
+              className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20 disabled:opacity-50"
             >
-              <ZapOff className="h-3 w-3" /> Deactivate
+              {bulkSetActive.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              <ZapOff className="h-3 w-3" /> {bulkSetActive.isPending ? "Deactivating..." : "Deactivate"}
             </button>
           </div>
           <button onClick={clearSelection} className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground">Clear selection</button>

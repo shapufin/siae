@@ -7,6 +7,7 @@ import { useSiteSettings } from "../contexts/SiteSettingsContext";
 import { useToast } from "../contexts/ToastContext";
 import { cn, getApiErrorMessage, getUserOptionLabel, unwrapResults } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
+import { defaultQueryConfig } from "../lib/queryConfig";
 import { useFilteredUsers } from "../hooks/useUserFilters";
 import type { User, Shift, Assignment, AddAssignmentDialogProps } from "../types";
 
@@ -28,7 +29,7 @@ export function AddAssignmentDialog({ shiftId, date, onClose }: AddAssignmentDia
       return unwrapResults(res);
     },
     enabled: !!token,
-    retry: 3,
+    ...defaultQueryConfig,
   });
 
   const { data: shift } = useQuery<Shift>({
@@ -38,7 +39,7 @@ export function AddAssignmentDialog({ shiftId, date, onClose }: AddAssignmentDia
       return res.data;
     },
     enabled: !!token,
-    retry: 3,
+    ...defaultQueryConfig,
   });
 
   const shiftTechnology = shift?.technology;

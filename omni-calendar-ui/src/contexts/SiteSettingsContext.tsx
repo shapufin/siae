@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./AuthContext";
+import { criticalQueryConfig } from "../lib/queryConfig";
 import type { SiteSettings } from "../types";
 
 const DEFAULT_SETTINGS: SiteSettings = {
@@ -29,7 +30,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       return res.data;
     },
     staleTime: 0,
-    retry: 1,
+    ...criticalQueryConfig,
   });
 
   const value = data ?? DEFAULT_SETTINGS;

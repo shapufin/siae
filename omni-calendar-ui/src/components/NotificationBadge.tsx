@@ -54,6 +54,7 @@ export function NotificationBadge() {
       return res.data;
     },
     refetchInterval: 1000 * 30,
+    refetchIntervalInBackground: false,
   });
 
   const visibleVacations = useMemo(() => {
