@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Settings,
@@ -26,12 +26,16 @@ interface SettingsData {
   brand_name: string;
   client_role_label: string;
   consultant_role_label: string;
+  email_backend: "smtp" | "postfix";
   smtp_host: string;
   smtp_port: number;
   smtp_user: string;
   smtp_password: string;
   smtp_use_tls: boolean;
   smtp_from_email: string;
+  postfix_host: string;
+  postfix_port: number;
+  client_email: string;
   notifications_enabled: boolean;
   notify_on_vacation_change: boolean;
   notify_on_shift_change: boolean;
@@ -48,12 +52,16 @@ const DEFAULT_SETTINGS: SettingsData = {
   brand_name: "Omni Calendar",
   client_role_label: "Client",
   consultant_role_label: "Consultant",
+  email_backend: "smtp",
   smtp_host: "",
   smtp_port: 587,
   smtp_user: "",
   smtp_password: "",
   smtp_use_tls: true,
   smtp_from_email: "noreply@omni-calendar.local",
+  postfix_host: "host.docker.internal",
+  postfix_port: 25,
+  client_email: "",
   notifications_enabled: false,
   notify_on_vacation_change: true,
   notify_on_shift_change: true,
@@ -82,11 +90,11 @@ export function SettingsTab() {
   const [form, setForm] = useState<SettingsData>(DEFAULT_SETTINGS);
 
   // Sync form when data loads
-  useState(() => {
+  useEffect(() => {
     if (data) {
       setForm({ ...DEFAULT_SETTINGS, ...data, smtp_password: "" });
     }
-  });
+  }, [data]);
 
   const updateMutation = useMutation({
     mutationFn: async (payload: Partial<SettingsData>) => {
@@ -104,12 +112,12 @@ export function SettingsTab() {
   });
 
   const testEmailMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post("/settings/test-email/");
+    mutationFn: async (backend?: string | void) => {
+      const res = await api.post("/settings/test-email/", { backend: backend || undefined });
       return res.data;
     },
-    onSuccess: () => {
-      showToast("Test email sent", "success");
+    onSuccess: (_, backend) => {
+      showToast(backend === "postfix" ? "Test email sent via Postfix" : "Test email sent", "success");
     },
     onError: (err) => {
       showToast(getApiErrorMessage(err, "Failed to send test email"), "error");
@@ -180,51 +188,115 @@ export function SettingsTab() {
         </div>
       </section>
 
-      {/* SMTP */}
+      {/* Email */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Mail className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">SMTP Configuration</h3>
+          <h3 className="text-lg font-semibold">Email Configuration</h3>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">SMTP Host</label>
-            <input
-              type="text"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.smtp_host}
-              onChange={(e) => handleChange("smtp_host", e.target.value)}
-              placeholder="smtp.gmail.com"
-            />
+
+        <div className="space-y-2 max-w-sm">
+          <label className="text-sm font-medium">Active Backend</label>
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            value={form.email_backend}
+            onChange={(e) =>
+              handleChange("email_backend", e.target.value as "smtp" | "postfix")
+            }
+          >
+            <option value="smtp">SMTP (External Server)</option>
+            <option value="postfix">Postfix (Local Relay)</option>
+          </select>
+          <p className="text-[10px] text-muted-foreground">
+            {form.email_backend === "smtp"
+              ? "Use an external mail server (Gmail, SendGrid, etc.) with credentials."
+              : "Use the local Postfix service running on the host server."}
+          </p>
+        </div>
+
+        {form.email_backend === "smtp" ? (
+          <div className="grid gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">SMTP Host</label>
+              <input
+                type="text"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.smtp_host}
+                onChange={(e) => handleChange("smtp_host", e.target.value)}
+                placeholder="smtp.gmail.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">SMTP Port</label>
+              <input
+                type="number"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.smtp_port}
+                onChange={(e) => handleChange("smtp_port", Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">SMTP User</label>
+              <input
+                type="text"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.smtp_user}
+                onChange={(e) => handleChange("smtp_user", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">SMTP Password</label>
+              <input
+                type="password"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.smtp_password}
+                onChange={(e) => handleChange("smtp_password", e.target.value)}
+                placeholder="Leave blank to keep current"
+              />
+            </div>
+            <div className="flex items-center gap-3 pt-6">
+              <input
+                id="smtp-tls"
+                type="checkbox"
+                className="h-4 w-4 rounded border-primary"
+                checked={form.smtp_use_tls}
+                onChange={(e) => handleChange("smtp_use_tls", e.target.checked)}
+              />
+              <label htmlFor="smtp-tls" className="text-sm font-medium">
+                Use TLS
+              </label>
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">SMTP Port</label>
-            <input
-              type="number"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.smtp_port}
-              onChange={(e) => handleChange("smtp_port", Number(e.target.value))}
-            />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Postfix Host</label>
+              <input
+                type="text"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.postfix_host}
+                onChange={(e) => handleChange("postfix_host", e.target.value)}
+                placeholder="host.docker.internal"
+              />
+              <p className="text-[10px] text-muted-foreground italic">
+                Usually 'host.docker.internal' to reach the host from Docker.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Postfix Port</label>
+              <input
+                type="number"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.postfix_port}
+                onChange={(e) =>
+                  handleChange("postfix_port", Number(e.target.value))
+                }
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">SMTP User</label>
-            <input
-              type="text"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.smtp_user}
-              onChange={(e) => handleChange("smtp_user", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">SMTP Password</label>
-            <input
-              type="password"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.smtp_password}
-              onChange={(e) => handleChange("smtp_password", e.target.value)}
-              placeholder="Leave blank to keep current"
-            />
-          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2 border-t border-border/40 pt-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">From Email</label>
             <input
@@ -234,17 +306,18 @@ export function SettingsTab() {
               onChange={(e) => handleChange("smtp_from_email", e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-3 pt-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Client Email</label>
             <input
-              id="smtp-tls"
-              type="checkbox"
-              className="h-4 w-4 rounded border-primary"
-              checked={form.smtp_use_tls}
-              onChange={(e) => handleChange("smtp_use_tls", e.target.checked)}
+              type="email"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={form.client_email}
+              onChange={(e) => handleChange("client_email", e.target.value)}
+              placeholder="client@company.com"
             />
-            <label htmlFor="smtp-tls" className="text-sm font-medium">
-              Use TLS
-            </label>
+            <p className="text-[10px] text-muted-foreground italic">
+              Global client email for vacation notifications.
+            </p>
           </div>
         </div>
       </section>
@@ -458,6 +531,21 @@ export function SettingsTab() {
             <Send className="h-4 w-4" />
           )}
           Send Test Email
+        </button>
+        <button
+          type="button"
+          onClick={() => testEmailMutation.mutate("postfix")}
+          disabled={testEmailMutation.isPending}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-bold text-foreground shadow-sm hover:bg-secondary disabled:opacity-50"
+          )}
+        >
+          {testEmailMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Database className="h-4 w-4" />
+          )}
+          Test Postfix
         </button>
       </div>
     </div>

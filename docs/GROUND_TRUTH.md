@@ -72,8 +72,11 @@ The `DayDrawer` provides two optional layouts to manage high-density resource or
 ### 3.6 Dynamic Branding
 The application brand name and role labels (Client/Consultant) are managed via `SiteSettings`. The frontend dynamically updates the browser tab title and UI labels based on these settings fetched via `/api/settings/public/`.
 
-### 3.7 SMTP & Diagnostics
-SMTP configuration is stored in the database with encrypted passwords. Admins can verify connectivity via a "Send Test Email" feature in the settings panel.
+### 3.7 Email Integration & Diagnostics
+Flexible email notification system supporting both external SMTP and local Postfix (MTA relay). Configuration is managed via the Admin Dashboard.
+- **SMTP**: Uses Fernet-encrypted passwords stored in the database.
+- **Postfix**: Communicates with the host service via `host.docker.internal:25`.
+- **Diagnostics**: Admins can verify connectivity via a "Send Test Email" feature which identifies the active backend.
 
 ---
 

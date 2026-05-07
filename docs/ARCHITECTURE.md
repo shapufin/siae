@@ -49,7 +49,16 @@ Access control is enforced at both the API level (Django Permissions) and UI lev
 3. **Optimistic UI**: Frontend updates immediately on user action, rolling back only on server failure to maintain perceived performance.
 4. **Debounced Search**: Technology and user searches are debounced to reduce API pressure.
 
-## 🛠️ Infrastructure
+## � Email Integration
+
+The application features a flexible email notification system managed via the `SiteSettings` singleton.
+
+1. **Dual Backend Support**: Supports external SMTP (with Fernet-encrypted credentials) and local Postfix (MTA relay).
+2. **Encryption at Rest**: SMTP passwords are encrypted using `cryptography.fernet` before storage in the database.
+3. **Infrastructure Mapping**: Docker containers use `host.docker.internal` to reach the host's Postfix service.
+4. **Trigger Points**: Notifications are triggered by vacation changes and shift assignment updates.
+
+## �🛠️ Infrastructure
 
 - **Dockerized Environment**: Consistent dev/prod parity.
 - **Environment Driven**: `ENV_MODE` toggles between SQLite (Dev) and PostgreSQL (Prod).

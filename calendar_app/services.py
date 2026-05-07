@@ -1,6 +1,7 @@
 import logging
 from .email import send_smtp_email
 from .models import CustomUser, SiteSettings, Vacation, Assignment
+from .email_templates import render_vacation_notification_html
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,31 @@ class NotificationService:
             logger.info(f"Vacation notification ({action}) sent for user {vacation.user.username}")
         except Exception as e:
             logger.error(f"Failed to send vacation notification: {e}")
+
+        # Client notification for ENG (Consultant) users
+        if vacation.user.role == "ENG" and conf.client_email:
+            user_name = vacation.user.get_full_name() or vacation.user.username
+            first_name = vacation.user.first_name or ""
+            last_name = vacation.user.last_name or ""
+            technology = vacation.user.default_technology.name if hasattr(vacation.user, 'default_technology') and vacation.user.default_technology else "N/A"
+            
+            html_body = render_vacation_notification_html(
+                brand_name=conf.brand_name,
+                first_name=first_name,
+                last_name=last_name,
+                technology=technology,
+                vacation_type=vacation.get_type_display(),
+                start_date=str(vacation.start_date),
+                end_date=str(vacation.end_date)
+            )
+            
+            client_subject = f"[{conf.brand_name}] Consultant Vacation Notification: {user_name}"
+            try:
+                # Send HTML email to client
+                send_smtp_email(client_subject, "", [conf.client_email], html_body=html_body)
+                logger.info(f"Client vacation notification sent for user {vacation.user.username}")
+            except Exception as e:
+                logger.error(f"Failed to send client vacation notification: {e}")
 
     @classmethod
     def send_assignment_notification(cls, assignment: Assignment, action: str):

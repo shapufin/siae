@@ -123,3 +123,19 @@ class IsSuperUser(permissions.BasePermission):
 
     def has_permission(self, request: Request, view: Any) -> bool:
         return request.user.is_authenticated and request.user.is_superuser
+
+
+class IsOwnerOrSuperUser(permissions.BasePermission):
+    """Owner, superuser, or domain manager can modify."""
+
+    def has_permission(self, request: Request, view: Any) -> bool:
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request: Request, view: Any, obj: Any) -> bool:
+        if request.user.is_superuser:
+            return True
+        if obj == request.user:
+            return True
+        if request.user.is_manager:
+            return _same_domain(request, obj)
+        return False

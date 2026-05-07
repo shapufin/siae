@@ -299,6 +299,20 @@ class SiteSettings(models.Model):
     smtp_use_tls = models.BooleanField(default=True)
     smtp_from_email = models.EmailField(default="noreply@omni-calendar.local")
 
+    # Email Backend Selection
+    email_backend = models.CharField(
+        max_length=20,
+        choices=[
+            ("smtp", "SMTP (External)"),
+            ("postfix", "Postfix (Local)"),
+        ],
+        default="smtp",
+    )
+    postfix_host = models.CharField(max_length=255, default="host.docker.internal")
+    postfix_port = models.PositiveIntegerField(default=25)
+
+    client_email = models.EmailField(blank=True, null=True, help_text="Global client email for vacation notifications")
+
     notifications_enabled = models.BooleanField(default=False)
     notify_on_vacation_change = models.BooleanField(default=True)
     notify_on_shift_change = models.BooleanField(default=True)

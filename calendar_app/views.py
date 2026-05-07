@@ -25,6 +25,7 @@ from .permissions import (
     CanManageAssignment,
     IsAdminOrManagerOrReadOnly,
     IsOwnerOrAdmin,
+    IsOwnerOrSuperUser,
     IsSuperUser,
 )
 from .serializers import (
@@ -217,21 +218,16 @@ class UserViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=["post"],
         url_path="set-password",
-        permission_classes=[IsSuperUser],
+        permission_classes=[permissions.IsAuthenticated, IsOwnerOrSuperUser],
     )
     def set_password(self, request: Any, pk: int | None = None) -> Response:
-        """Superuser-only: reset any user's password."""
-        if not request.user.is_superuser:
-            return Response(
-                {"detail": "Only superusers can reset passwords."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        """Reset any user's password (superuser) or own password (manager/user)."""
         user = self.get_object()
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
             user.set_password(serializer.validated_data["new_password"])
             user.save()
-            logger.info("Superuser %s reset password for user %s", request.user.username, user.username)
+            logger.info("Password reset for user %s by %s", user.username, request.user.username)
             return Response(
                 {"detail": f"Password reset for {user.username}."},
                 status=status.HTTP_200_OK,
@@ -684,17 +680,25 @@ class TestEmailView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         from .models import SiteSettings
-        brand = SiteSettings.load().brand_name or "Omni Calendar"
+        conf = SiteSettings.load()
+        brand = conf.brand_name or "Omni Calendar"
+        
+        # Allow overriding backend for testing
+        requested_backend = request.data.get('backend')
+        target_backend = requested_backend if requested_backend in ['smtp', 'postfix'] else conf.email_backend
+        backend_name = "Postfix" if target_backend == "postfix" else "SMTP"
+        
         count = send_smtp_email(
-            subject=f"Test Email from {brand}",
-            body="This is a test email to verify SMTP configuration.",
+            subject=f"Test Email ({backend_name}) from {brand}",
+            body=f"This is a test email via {backend_name} to verify configuration.",
             to_emails=[user.email],
             force=True,
+            backend_override=target_backend,
         )
         if count:
-            return Response({"detail": "Test email sent."}, status=status.HTTP_200_OK)
+            return Response({"detail": f"Test email sent via {backend_name}."}, status=status.HTTP_200_OK)
         return Response(
-            {"detail": "Email not sent. Check SMTP settings or enable notifications."},
+            {"detail": f"Email not sent via {backend_name}. Check settings or enable notifications."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 

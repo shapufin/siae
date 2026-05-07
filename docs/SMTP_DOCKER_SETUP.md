@@ -1,14 +1,16 @@
-# SMTP & Encryption Setup for Docker
+# Email Configuration (SMTP & Postfix)
+
+The application supports two email backends: **External SMTP** and **Local Postfix**. You can switch between them in the Admin Dashboard.
 
 ## Required Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DJANGO_FERNET_KEY` | **Yes** (for encrypted SMTP) | *(empty)* | 32-byte URL-safe base64 key for Fernet encryption of the SMTP password stored in the database. |
+| `DJANGO_FERNET_KEY` | **Yes** (for SMTP) | *(empty)* | 32-byte URL-safe base64 key for Fernet encryption of the SMTP password. |
 | `DJANGO_SECRET_KEY` | Yes | `replace-me-in-production` | Standard Django secret key. |
-| `EMAIL_BACKEND` | No | `console` | Override email backend. Only needed for debugging; production uses DB-configured SMTP. |
+| `EMAIL_BACKEND` | No | `console` | Override email backend for debugging. |
 
-## Generating a Fernet Key
+## Generating a Fernet Key (Required for SMTP)
 
 Run once before first `docker compose up`:
 
@@ -23,53 +25,46 @@ Copy the output (e.g., `sOmE32CharBase64EncodedKey==`) into your `.env` file:
 DJANGO_FERNET_KEY=sOmE32CharBase64EncodedKey==
 ```
 
-**If this variable is missing or invalid:**
-- The application **will not crash**.
-- Saving an SMTP password in the admin UI returns a validation error.
-- Encrypted passwords already in the database decrypt to an empty string (graceful degradation).
-- Email falls back to Django's `console.EmailBackend` (logs to stdout).
+## Docker Compose Integration (Required for Postfix)
 
-## Docker Compose Integration
-
-`docker-compose.yml` already references the variable:
+To allow the Docker container to communicate with the host's Postfix service, `docker-compose.yml` includes an `extra_hosts` mapping:
 
 ```yaml
 services:
   web:
-    environment:
-      DJANGO_FERNET_KEY: ${DJANGO_FERNET_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 ```
 
-Pass it via shell export or an `.env` file in the project root:
+This maps `host.docker.internal` to the host's IP address within the container.
 
-```bash
-docker compose --env-file .env up
-```
-
-## Admin UI Configuration (Post-Launch)
+## Admin UI Configuration
 
 1. Log in as a **superuser**.
 2. Navigate to **Admin Dashboard → Settings** tab.
-3. Fill SMTP fields:
-   - **Host**, **Port**, **User**, **Password**
-   - **Use TLS** (recommended)
-   - **From Email**
-4. Toggle **Notifications Enabled**.
-5. Click **Send Test Email** to verify connectivity before saving.
+3. In the **Email Configuration** section, select your **Active Backend**.
 
-The SMTP password is encrypted at rest using `DJANGO_FERNET_KEY`.
+### Option A: SMTP (External Server)
+- **Host**, **Port**, **User**, **Password**, **Use TLS**.
+- Recommended for Gmail, SendGrid, Office365, etc.
+- Password is encrypted at rest using `DJANGO_FERNET_KEY`.
 
-## Security Notes
+### Option B: Postfix (Local Relay)
+- **Postfix Host**: Usually `host.docker.internal`.
+- **Postfix Port**: Usually `25`.
+- Uses the mail service running on the host machine. No authentication is typically required for local relay.
 
-- **Never commit `DJANGO_FERNET_KEY` to Git.** Add it to `.env` and `.gitignore`.
-- Rotating the key requires re-entering the SMTP password in the admin UI; existing encrypted values become undecryptable and fall back to empty.
-- The key must be exactly 32 URL-safe base64 bytes. The code auto-pads short keys with `=` for convenience, but generating a proper key is strongly recommended.
+### Shared Settings
+- **From Email**: The address shown as the sender.
+- **Notifications Enabled**: Global toggle for all automated emails.
+
+4. Click **Send Test Email** to verify connectivity before saving.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| "Check SMTP settings" on test email | Missing host/user or bad credentials | Verify SMTP config in Settings tab. |
-| Validation error saving password | `DJANGO_FERNET_KEY` unset | Set the env var and restart the container. |
+| "Check settings" on test email | Bad credentials or unreachable host | Verify Host/Port and network access. |
+| Validation error saving SMTP | `DJANGO_FERNET_KEY` unset | Set the env var and restart the container. |
+| Postfix connection timeout | Firewall or incorrect host | Ensure port 25 is open on host and Host matches `host.docker.internal`. |
 | No emails sent, no error | `notifications_enabled` is `False` | Toggle in Settings tab. |
-| Emails logged to stdout only | `smtp_password` decrypts empty (key rotation/missing) | Re-save password with a valid `DJANGO_FERNET_KEY`. |

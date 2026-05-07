@@ -54,28 +54,43 @@ def send_smtp_email(
     to_emails: list[str],
     html_body: str | None = None,
     force: bool = False,
+    backend_override: str | None = None,
 ) -> int:
-    """Send email using DB-stored SMTP settings. Falls back to console backend if misconfigured."""
+    """Send email using configured backend (SMTP or Postfix). Falls back to console if misconfigured."""
     conf = SiteSettings.load()
     if not conf.notifications_enabled and not force:
         return 0
 
-    if not (conf.smtp_host and conf.smtp_user and conf.smtp_password):
-        # Fallback to console backend for local dev
-        connection = get_connection(backend="django.core.mail.backends.console.EmailBackend")
+    target_backend = backend_override or conf.email_backend
+
+    if target_backend == "postfix":
+        # Use local Postfix
+        connection = get_connection(
+            backend="django.core.mail.backends.smtp.EmailBackend",
+            host=conf.postfix_host or "host.docker.internal",
+            port=conf.postfix_port or 25,
+            use_tls=False,
+            username=None,
+            password=None,
+        )
     else:
-        password = decrypt_password(conf.smtp_password)
-        if not password:
+        # Use external SMTP
+        if not (conf.smtp_host and conf.smtp_user and conf.smtp_password):
+            # Fallback to console backend for local dev
             connection = get_connection(backend="django.core.mail.backends.console.EmailBackend")
         else:
-            connection = get_connection(
-                backend="django.core.mail.backends.smtp.EmailBackend",
-                host=conf.smtp_host,
-                port=conf.smtp_port,
-                username=conf.smtp_user,
-                password=password,
-                use_tls=conf.smtp_use_tls,
-            )
+            password = decrypt_password(conf.smtp_password)
+            if not password:
+                connection = get_connection(backend="django.core.mail.backends.console.EmailBackend")
+            else:
+                connection = get_connection(
+                    backend="django.core.mail.backends.smtp.EmailBackend",
+                    host=conf.smtp_host,
+                    port=conf.smtp_port,
+                    username=conf.smtp_user,
+                    password=password,
+                    use_tls=conf.smtp_use_tls,
+                )
 
     msg = EmailMessage(
         subject=subject,

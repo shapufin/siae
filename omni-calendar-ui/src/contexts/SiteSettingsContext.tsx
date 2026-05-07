@@ -21,7 +21,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       const res = await api.get("/settings/public/");
       return res.data;
     },
-    staleTime: 1000 * 60 * 60,
+    staleTime: 0,
     retry: 1,
   });
 

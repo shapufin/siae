@@ -29,7 +29,8 @@ The fastest way to get the entire stack running:
 2. **Create environment file**
    ```bash
    cp .env.example .env
-   # Edit .env and set a secure DJANGO_SECRET_KEY and DJANGO_FERNET_KEY
+   # Edit .env and set a secure DJANGO_SECRET_KEY. 
+   # DJANGO_FERNET_KEY is required if using the SMTP email backend.
    ```
 
 3. **Launch the stack**

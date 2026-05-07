@@ -604,6 +604,10 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "smtp_password",
             "smtp_use_tls",
             "smtp_from_email",
+            "email_backend",
+            "postfix_host",
+            "postfix_port",
+            "client_email",
             "notifications_enabled",
             "notify_on_vacation_change",
             "notify_on_shift_change",
@@ -618,6 +622,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
     def update(self, instance: SiteSettings, validated_data: dict[str, Any]) -> SiteSettings:
         from .email import _get_fernet, encrypt_password
+        from django.core.cache import cache
         plain = validated_data.pop("smtp_password", None)
         if plain is not None:
             if plain and _get_fernet() is None:
@@ -633,6 +638,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        cache.delete("site_settings")
         return instance
 
 

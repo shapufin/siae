@@ -101,20 +101,17 @@ export function UserCard({ assignmentId, user, type, standbyDetail, dateStr, hid
           />
         </div>
 
-        {/* Compact Info & Badges Row */}
-        <div className="min-w-0 flex-1 flex items-center justify-between gap-3 overflow-hidden">
-          <p className="font-bold text-[13px] tracking-tight text-foreground/90 whitespace-nowrap overflow-hidden text-ellipsis">
-            {displayName}
-          </p>
-
-          <div className="flex items-center gap-1.5 shrink-0">
+        {/* Compact Info & Badges Row - Stacked Layout with "Coefficient" labels */}
+        <div className="min-w-0 flex-1 flex flex-col overflow-hidden">
+          {/* Coefficient Row (Role/Status) */}
+          <div className="flex items-center gap-1.5 h-3 mb-1">
             {isStandby && standbyDetail && (
               <span
                 className={cn(
-                  "rounded px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ring-1 shadow-sm transition-all",
+                  "text-[8px] font-black uppercase tracking-[0.1em] px-1 rounded-sm",
                   standbyDetail.role === "PRIMARY"
-                    ? "bg-success/20 text-success dark:text-success-foreground ring-success/40"
-                    : "bg-info/20 text-info dark:text-info-foreground ring-info/40"
+                    ? "bg-success/20 text-success"
+                    : "bg-info/20 text-info"
                 )}
               >
                 {standbyDetail.role}
@@ -124,32 +121,38 @@ export function UserCard({ assignmentId, user, type, standbyDetail, dateStr, hid
             {isWorkHours && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest shadow-sm transition-all",
+                  "text-[8px] font-black uppercase tracking-[0.1em] px-1 rounded-sm",
                   user.vacation_status
-                    ? "bg-destructive/20 text-destructive dark:text-destructive-foreground"
-                    : "bg-success/20 text-success dark:text-success-foreground"
+                    ? "bg-destructive/20 text-destructive"
+                    : "bg-success/20 text-success"
                 )}
               >
-                <span className={cn("h-1.5 w-1.5 rounded-full", user.vacation_status ? "bg-destructive shadow-[0_0_10px_red]" : "bg-success shadow-[0_0_10px_green]")} />
                 {user.vacation_status ? "VACATION" : "AVAILABLE"}
               </span>
             )}
           </div>
-        </div>
 
-        {/* Compact Phone for CR/Admin */}
-        {showPhone && standbyDetail?.phone_number && (
-          <div className="flex items-center gap-1.5 shrink-0 border-l border-border/40 pl-3 ml-1">
-            <a
-              href={`tel:${standbyDetail.phone_number}`}
-              className="group/phone flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-[11px] font-bold text-primary transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
-              title={standbyDetail.phone_number}
-            >
-              <Phone className="h-4 w-4" />
-              <span className="hidden lg:inline">{standbyDetail.phone_number}</span>
-            </a>
+          {/* Name Row */}
+          <div className="flex items-center justify-between gap-2 overflow-hidden">
+            <p className="font-bold text-[13px] tracking-tight text-foreground/90 truncate">
+              {displayName}
+            </p>
           </div>
-        )}
+
+          {/* Compact Phone for CR/Admin - Moved below name */}
+          {showPhone && standbyDetail?.phone_number && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <a
+                href={`tel:${standbyDetail.phone_number}`}
+                className="group/phone flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] active:scale-95 border border-primary/20 shadow-sm"
+                title={standbyDetail.phone_number}
+              >
+                <Phone className="h-3 w-3" />
+                <span>{standbyDetail.phone_number}</span>
+              </a>
+            </div>
+          )}
+        </div>
 
         {/* Compact Actions */}
         {(onEdit && !isCR || canDelete) && (

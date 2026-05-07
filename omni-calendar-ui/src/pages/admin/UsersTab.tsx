@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, X, Shield, ShieldCheck, UserPlus, Settings2, Check, Users, Zap, ZapOff, KeyRound } from "lucide-react";
+import { Trash2, X, Shield, ShieldCheck, UserPlus, Settings2, Check, Users, Zap, ZapOff, KeyRound, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { api, useAuth } from "../../contexts/AuthContext";
 import { useSiteSettings } from "../../contexts/SiteSettingsContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -25,6 +25,24 @@ export function UsersTab() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkTechId, setBulkTechId] = useState("");
   const [bulkSetDefault, setBulkSetDefault] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const generateSecurePassword = () => {
+    const length = 16;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let retVal = "";
+    // Ensure at least one of each required type to satisfy backend regex
+    retVal += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+    retVal += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
+    retVal += "0123456789"[Math.floor(Math.random() * 10)];
+    retVal += "!@#$%^&*()_+"[Math.floor(Math.random() * 12)];
+    
+    for (let i = 0, n = charset.length; i < length - 4; ++i) {
+      retVal += charset.charAt(Math.floor(Math.random() * n));
+    }
+    // Shuffle the result
+    return retVal.split('').sort(() => 0.5 - Math.random()).join('');
+  };
 
   const { data: rawUsers, isLoading } = useQuery<User[]>({ queryKey: queryKeys.users.all, queryFn: async () => unwrapResults(await api.get<User[]>(`/users/?page_size=${DEFAULT_PAGE_SIZE}`)) });
   const { data: techs } = useQuery<Technology[]>({ queryKey: queryKeys.technologies.all, queryFn: async () => unwrapResults(await api.get<Technology[]>("/technologies/")) });
@@ -213,16 +231,39 @@ export function UsersTab() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Password</label>
-                <input
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={newU.password}
-                  onChange={(e) => setNewU({ ...newU, password: e.target.value })}
-                  placeholder="••••••••"
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium leading-none">Password</label>
+                  <button
+                    type="button"
+                    title="Generate secure password"
+                    onClick={() => {
+                      const pass = generateSecurePassword();
+                      setNewU({ ...newU, password: pass });
+                      setShowPassword(true);
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight text-primary hover:underline"
+                  >
+                    <RefreshCw className="h-2.5 w-2.5" /> Generate
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm"
+                    value={newU.password}
+                    onChange={(e) => setNewU({ ...newU, password: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
@@ -337,6 +378,7 @@ export function UsersTab() {
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Identity</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Role</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Default Tech</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Access Level</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Activity</th>
                 <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Actions</th>
@@ -388,6 +430,24 @@ export function UsersTab() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
+                      {(() => {
+                        const defaultTech = u.technologies?.find(t => t.is_default)?.technology;
+                        if (!defaultTech) return <span className="text-xs text-muted-foreground">None</span>;
+                        return (
+                          <span
+                            className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm"
+                            style={{
+                              borderColor: `${defaultTech.color_code}40`,
+                              backgroundColor: `${defaultTech.color_code}15`,
+                              color: defaultTech.color_code
+                            }}
+                          >
+                            {defaultTech.name}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
                         {u.permissions?.is_admin && (
                           <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500">
@@ -419,7 +479,7 @@ export function UsersTab() {
                             <Settings2 className="h-4 w-4" />
                           </button>
                         )}
-                        {isSuperuser && (
+                        {(isSuperuser || isManager || (user?.id === u.id)) && (
                           <button
                             onClick={() => setResettingPasswordFor(u)}
                             className="rounded-md p-2 text-muted-foreground transition-all hover:bg-amber-500/10 hover:text-amber-600"
@@ -695,6 +755,25 @@ interface PasswordResetDialogProps {
 }
 
 function PasswordResetDialog({ user, password, onPasswordChange, onClose, onConfirm, isPending }: PasswordResetDialogProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const generateSecurePassword = () => {
+    const length = 16;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let retVal = "";
+    // Ensure at least one of each required type to satisfy backend regex
+    retVal += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+    retVal += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
+    retVal += "0123456789"[Math.floor(Math.random() * 10)];
+    retVal += "!@#$%^&*()_+"[Math.floor(Math.random() * 12)];
+
+    for (let i = 0, n = charset.length; i < length - 4; ++i) {
+      retVal += charset.charAt(Math.floor(Math.random() * n));
+    }
+    // Shuffle the result
+    return retVal.split('').sort(() => 0.5 - Math.random()).join('');
+  };
+
   const canConfirm = password.length >= 8;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -715,15 +794,38 @@ function PasswordResetDialog({ user, password, onPasswordChange, onClose, onConf
         </div>
         <div className="p-6 space-y-4">
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">New Password</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => onPasswordChange(e.target.value)}
-              className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary"
-              placeholder="Minimum 8 characters"
-            />
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">New Password</label>
+              <button
+                type="button"
+                title="Generate secure password"
+                onClick={() => {
+                  const pass = generateSecurePassword();
+                  onPasswordChange(pass);
+                  setShowPassword(true);
+                }}
+                className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight text-primary hover:underline"
+              >
+                <RefreshCw className="h-2.5 w-2.5" /> Generate
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => onPasswordChange(e.target.value)}
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 pr-10 text-sm focus-visible:ring-2 focus-visible:ring-primary"
+                placeholder="Minimum 8 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {password.length > 0 && password.length < 8 && (
               <p className="text-xs text-destructive">Password must be at least 8 characters.</p>
             )}

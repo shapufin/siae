@@ -186,6 +186,10 @@ export interface SiteSettings {
   brand_name: string;
   client_role_label: string;
   consultant_role_label: string;
+  email_backend: "smtp" | "postfix";
+  postfix_host: string;
+  postfix_port: number;
+  client_email: string;
   announcement_text?: string;
   announcement_enabled?: boolean;
   announcement_color?: "red" | "yellow" | "blue" | "green";

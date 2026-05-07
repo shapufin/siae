@@ -213,8 +213,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@omni-calendar.local")
 
 # Cache Configuration
-try:
-    import django_redis
+if ENV_MODE == "production":
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -224,14 +223,7 @@ try:
             }
         }
     }
-except ImportError:
-    import warnings
-    warnings.warn(
-        "django-redis is not installed; falling back to LocMemCache. "
-        "Install django-redis and configure REDIS_URL for production.",
-        RuntimeWarning,
-        stacklevel=2,
-    )
+else:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
