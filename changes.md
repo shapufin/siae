@@ -142,6 +142,20 @@
 - `omni-calendar-ui/src/contexts/SiteSettingsContext.tsx`: Added template fields to defaults.
 - `omni-calendar-ui/src/pages/admin/SettingsTab.tsx`: Added Email Template Customization section.
 
+## 2026-05-07 - Postfix Localhost Networking Fix
+
+### Backend Changes
+
+#### `calendar_app/email.py`
+- Added `_get_docker_host_ip()` function to detect Docker bridge gateway IP for container-to-host communication.
+- Updated `send_smtp_email()` to automatically resolve "localhost" to Docker bridge gateway (172.17.0.1) when Postfix is selected.
+- Fixes connection issue where container's localhost != host's localhost.
+
+### Frontend Changes
+
+#### `omni-calendar-ui/src/pages/admin/SettingsTab.tsx`
+- Added help text for Postfix Host field explaining "localhost" auto-resolution.
+
 ## Related Files
 - `calendar_app/models.py` - SiteSettings model with cache logic (line 353-365)
 - `calendar_app/views.py` - SiteSettingsView using SiteSettings.load() (line 673-674)

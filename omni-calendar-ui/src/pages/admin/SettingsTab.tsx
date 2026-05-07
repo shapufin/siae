@@ -282,10 +282,10 @@ export function SettingsTab() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={form.postfix_host}
                 onChange={(e) => handleChange("postfix_host", e.target.value)}
-                placeholder="host.docker.internal"
+                placeholder="localhost"
               />
               <p className="text-[10px] text-muted-foreground italic">
-                Usually 'host.docker.internal' to reach the host from Docker.
+                Use "localhost" (auto-resolves to Docker bridge gateway on Linux) or "host.docker.internal" (Docker Desktop).
               </p>
             </div>
             <div className="space-y-2">

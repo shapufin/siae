@@ -2,6 +2,7 @@
 
 import logging
 import os
+import subprocess
 
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -10,6 +11,23 @@ from django.core.mail import EmailMessage, get_connection
 from .models import SiteSettings
 
 logger = logging.getLogger(__name__)
+
+
+def _get_docker_host_ip() -> str:
+    """Get the Docker bridge gateway IP for container-to-host communication."""
+    try:
+        # Try to get the default gateway
+        result = subprocess.run(['ip', 'route'], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'default' in line:
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        return parts[2]
+    except Exception:
+        pass
+    # Fallback to common Docker bridge gateway
+    return "172.17.0.1"
 
 
 def _get_fernet() -> Fernet | None:
@@ -65,9 +83,16 @@ def send_smtp_email(
 
     if target_backend == "postfix":
         # Use local Postfix
+        # If user specified "localhost", use Docker bridge gateway instead
+        # (container's localhost != host's localhost)
+        if conf.postfix_host == "localhost":
+            host = _get_docker_host_ip()
+        else:
+            host = conf.postfix_host or "host.docker.internal"
+        
         connection = get_connection(
             backend="django.core.mail.backends.smtp.EmailBackend",
-            host=conf.postfix_host or "host.docker.internal",
+            host=host,
             port=conf.postfix_port or 25,
             use_tls=False,
             username=None,
