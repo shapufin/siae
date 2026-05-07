@@ -190,6 +190,9 @@ export interface SiteSettings {
   postfix_host: string;
   postfix_port: number;
   client_email: string;
+  email_template_enabled: boolean;
+  email_template_subject: string;
+  email_template_body: string;
   announcement_text?: string;
   announcement_enabled?: boolean;
   announcement_color?: "red" | "yellow" | "blue" | "green";

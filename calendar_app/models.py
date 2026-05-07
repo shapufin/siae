@@ -313,6 +313,11 @@ class SiteSettings(models.Model):
 
     client_email = models.EmailField(blank=True, null=True, help_text="Global client email for vacation notifications")
 
+    # Customizable Email Templates
+    email_template_enabled = models.BooleanField(default=False, help_text="Use custom email template instead of default")
+    email_template_subject = models.CharField(max_length=255, blank=True, default="[{brand_name}] Consultant Vacation Notification: {first_name} {last_name}")
+    email_template_body = models.TextField(blank=True, default="", help_text="HTML email body. Use {first_name}, {last_name}, {technology}, {vacation_type}, {start_date}, {end_date}, {brand_name} as placeholders.")
+
     notifications_enabled = models.BooleanField(default=False)
     notify_on_vacation_change = models.BooleanField(default=True)
     notify_on_shift_change = models.BooleanField(default=True)

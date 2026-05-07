@@ -1,5 +1,14 @@
 from django.utils.safestring import mark_safe
 
+
+def _substitute_variables(template: str, **kwargs) -> str:
+    """Replace {variable} placeholders with actual values."""
+    result = template
+    for key, value in kwargs.items():
+        result = result.replace("{" + key + "}", str(value))
+    return result
+
+
 def render_vacation_notification_html(
     brand_name: str,
     first_name: str,
@@ -7,9 +16,28 @@ def render_vacation_notification_html(
     technology: str,
     vacation_type: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    custom_template: str = "",
 ) -> str:
-    """Renders a beautiful HTML email for vacation notifications."""
+    """Renders a beautiful HTML email for vacation notifications.
+    
+    If custom_template is provided, uses it with variable substitution.
+    Otherwise falls back to the default professional template.
+    """
+    
+    if custom_template:
+        return _substitute_variables(
+            custom_template,
+            brand_name=brand_name,
+            first_name=first_name,
+            last_name=last_name,
+            technology=technology,
+            vacation_type=vacation_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
+    
+    # Default professional template
     
     html_content = f"""
 <!DOCTYPE html>

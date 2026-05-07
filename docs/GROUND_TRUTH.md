@@ -75,8 +75,9 @@ The application brand name and role labels (Client/Consultant) are managed via `
 ### 3.7 Email Integration & Diagnostics
 Flexible email notification system supporting both external SMTP and local Postfix (MTA relay). Configuration is managed via the Admin Dashboard.
 - **SMTP**: Uses Fernet-encrypted passwords stored in the database.
-- **Postfix**: Communicates with the host service via `host.docker.internal:25`.
-- **Diagnostics**: Admins can verify connectivity via a "Send Test Email" feature which identifies the active backend.
+- **Postfix**: Communicates with the host service via `localhost:25` (container and Postfix on same RHEL server).
+- **Diagnostics**: Admins can verify connectivity via "Send Test Email" and "Test Postfix" buttons.
+- **Custom Templates**: Admins can customize email subject and HTML body with template variables (`{first_name}`, `{last_name}`, `{technology}`, `{vacation_type}`, `{start_date}`, `{end_date}`, `{brand_name}`). Falls back to default professional template when disabled.
 
 ---
 

@@ -126,6 +126,22 @@
 - Added "Test Postfix" button to explicitly test local relay regardless of active backend.
 - Updated `testEmailMutation` to handle backend overrides.
 
+## 2026-05-07 - Postfix Fix and Custom Email Templates
+
+### Infrastructure Fix
+- Postfix: Changed `inet_interfaces` to `all`, updated `mynetworks` for Docker access.
+
+### Backend Changes
+- `calendar_app/models.py`: Added `email_template_enabled`, `email_template_subject`, `email_template_body` to SiteSettings.
+- `calendar_app/email_templates.py`: Added variable substitution and custom template support.
+- `calendar_app/services.py`: Client notification uses custom templates when enabled.
+- `calendar_app/serializers.py`: Added template fields to serializer.
+
+### Frontend Changes
+- `omni-calendar-ui/src/types/index.ts`: Added template fields to SiteSettings interface.
+- `omni-calendar-ui/src/contexts/SiteSettingsContext.tsx`: Added template fields to defaults.
+- `omni-calendar-ui/src/pages/admin/SettingsTab.tsx`: Added Email Template Customization section.
+
 ## Related Files
 - `calendar_app/models.py` - SiteSettings model with cache logic (line 353-365)
 - `calendar_app/views.py` - SiteSettingsView using SiteSettings.load() (line 673-674)

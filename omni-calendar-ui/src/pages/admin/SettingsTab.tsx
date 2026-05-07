@@ -36,6 +36,9 @@ interface SettingsData {
   postfix_host: string;
   postfix_port: number;
   client_email: string;
+  email_template_enabled: boolean;
+  email_template_subject: string;
+  email_template_body: string;
   notifications_enabled: boolean;
   notify_on_vacation_change: boolean;
   notify_on_shift_change: boolean;
@@ -62,6 +65,9 @@ const DEFAULT_SETTINGS: SettingsData = {
   postfix_host: "host.docker.internal",
   postfix_port: 25,
   client_email: "",
+  email_template_enabled: false,
+  email_template_subject: "",
+  email_template_body: "",
   notifications_enabled: false,
   notify_on_vacation_change: true,
   notify_on_shift_change: true,
@@ -318,6 +324,61 @@ export function SettingsTab() {
             <p className="text-[10px] text-muted-foreground italic">
               Global client email for vacation notifications.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Email Template Customization */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Mail className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Email Template Customization</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              id="template-enabled"
+              type="checkbox"
+              className="h-4 w-4 rounded border-primary"
+              checked={form.email_template_enabled}
+              onChange={(e) => handleChange("email_template_enabled", e.target.checked)}
+            />
+            <label htmlFor="template-enabled" className="text-sm font-medium">
+              Enable custom email template
+            </label>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email Subject</label>
+            <input
+              type="text"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={form.email_template_subject}
+              onChange={(e) => handleChange("email_template_subject", e.target.value)}
+              placeholder="[{brand_name}] Consultant Vacation Notification: {first_name} {last_name}"
+              disabled={!form.email_template_enabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email Body (HTML)</label>
+            <textarea
+              className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              value={form.email_template_body}
+              onChange={(e) => handleChange("email_template_body", e.target.value)}
+              placeholder={`<h1>{brand_name}</h1><p>Consultant {first_name} {last_name} has scheduled vacation.</p>`}
+              disabled={!form.email_template_enabled}
+            />
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <p className="text-xs font-bold mb-2">Available template variables:</p>
+            <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+              <code>{'{brand_name}'}</code>
+              <code>{'{first_name}'}</code>
+              <code>{'{last_name}'}</code>
+              <code>{'{technology}'}</code>
+              <code>{'{vacation_type}'}</code>
+              <code>{'{start_date}'}</code>
+              <code>{'{end_date}'}</code>
+            </div>
           </div>
         </div>
       </section>

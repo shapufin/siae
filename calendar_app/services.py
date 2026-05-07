@@ -57,6 +57,9 @@ class NotificationService:
             last_name = vacation.user.last_name or ""
             technology = vacation.user.default_technology.name if hasattr(vacation.user, 'default_technology') and vacation.user.default_technology else "N/A"
             
+            # Use custom template if enabled
+            custom_template = conf.email_template_body if conf.email_template_enabled else ""
+            
             html_body = render_vacation_notification_html(
                 brand_name=conf.brand_name,
                 first_name=first_name,
@@ -64,10 +67,16 @@ class NotificationService:
                 technology=technology,
                 vacation_type=vacation.get_type_display(),
                 start_date=str(vacation.start_date),
-                end_date=str(vacation.end_date)
+                end_date=str(vacation.end_date),
+                custom_template=custom_template,
             )
             
-            client_subject = f"[{conf.brand_name}] Consultant Vacation Notification: {user_name}"
+            # Use custom subject if enabled, otherwise default
+            if conf.email_template_enabled and conf.email_template_subject:
+                client_subject = conf.email_template_subject.replace("{brand_name}", conf.brand_name).replace("{first_name}", first_name).replace("{last_name}", last_name)
+            else:
+                client_subject = f"[{conf.brand_name}] Consultant Vacation Notification: {user_name}"
+            
             try:
                 # Send HTML email to client
                 send_smtp_email(client_subject, "", [conf.client_email], html_body=html_body)
