@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   postfix_host: "host.docker.internal",
   postfix_port: 25,
   client_email: "",
+  test_email_recipient: "",
   email_template_enabled: false,
   email_template_subject: "",
   email_template_body: "",

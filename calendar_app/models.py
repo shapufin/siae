@@ -312,6 +312,7 @@ class SiteSettings(models.Model):
     postfix_port = models.PositiveIntegerField(default=25)
 
     client_email = models.EmailField(blank=True, null=True, help_text="Global client email for vacation notifications")
+    test_email_recipient = models.EmailField(blank=True, null=True, help_text="Email address to send test emails to")
 
     # Customizable Email Templates
     email_template_enabled = models.BooleanField(default=False, help_text="Use custom email template instead of default")

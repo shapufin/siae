@@ -608,6 +608,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "postfix_host",
             "postfix_port",
             "client_email",
+            "test_email_recipient",
             "email_template_enabled",
             "email_template_subject",
             "email_template_body",

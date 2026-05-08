@@ -1,6 +1,6 @@
 # Consolidated TSX Files
 # Total files: 32
-# Generated: 1778168598.4543002
+# Generated: 1778170547.9698517
 ================================================================================
 
 
@@ -151,6 +151,7 @@ import { useSiteSettings } from "../contexts/SiteSettingsContext";
 import { useToast } from "../contexts/ToastContext";
 import { cn, getApiErrorMessage, getUserOptionLabel, unwrapResults } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
+import { defaultQueryConfig } from "../lib/queryConfig";
 import { useFilteredUsers } from "../hooks/useUserFilters";
 import type { User, Shift, Assignment, AddAssignmentDialogProps } from "../types";
 
@@ -172,7 +173,7 @@ export function AddAssignmentDialog({ shiftId, date, onClose }: AddAssignmentDia
       return unwrapResults(res);
     },
     enabled: !!token,
-    retry: 3,
+    ...defaultQueryConfig,
   });
 
   const { data: shift } = useQuery<Shift>({
@@ -182,7 +183,7 @@ export function AddAssignmentDialog({ shiftId, date, onClose }: AddAssignmentDia
       return res.data;
     },
     enabled: !!token,
-    retry: 3,
+    ...defaultQueryConfig,
   });
 
   const shiftTechnology = shift?.technology;
@@ -2632,6 +2633,7 @@ export function NotificationBadge() {
       return res.data;
     },
     refetchInterval: 1000 * 30,
+    refetchIntervalInBackground: false,
   });
 
   const visibleVacations = useMemo(() => {
@@ -4044,11 +4046,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
+  throw new Error("VITE_API_BASE_URL must be set in production environment");
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000,
 });
+
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value: any) => void; reject: (error: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+};
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -4063,21 +4081,38 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       const refresh = localStorage.getItem("refresh_token");
       if (refresh) {
         try {
-          const res = await axios.post("http://localhost:8000/api/auth/token/refresh/", {
+          const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
             refresh,
           });
           const newAccess = res.data.access;
           localStorage.setItem("token", newAccess);
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+          processQueue(null, newAccess);
           return api(originalRequest);
-        } catch {
+        } catch (refreshError) {
+          processQueue(refreshError, null);
           localStorage.removeItem("token");
           localStorage.removeItem("refresh_token");
           window.location.reload();
+        } finally {
+          isRefreshing = false;
         }
       }
     }
@@ -4157,6 +4192,7 @@ export function useAuth() {
 import { createContext, useContext, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./AuthContext";
+import { criticalQueryConfig } from "../lib/queryConfig";
 import type { SiteSettings } from "../types";
 
 const DEFAULT_SETTINGS: SiteSettings = {
@@ -4185,7 +4221,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       return res.data;
     },
     staleTime: 0,
-    retry: 1,
+    ...criticalQueryConfig,
   });
 
   const value = data ?? DEFAULT_SETTINGS;
@@ -4379,6 +4415,7 @@ import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { defaultQueryConfig } from "./lib/queryConfig";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { SiteSettingsProvider } from "./contexts/SiteSettingsContext";
@@ -4389,7 +4426,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
-      retry: 1,
+      ...defaultQueryConfig,
     },
   },
 });
@@ -4884,10 +4921,10 @@ export function SettingsTab() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={form.postfix_host}
                 onChange={(e) => handleChange("postfix_host", e.target.value)}
-                placeholder="host.docker.internal"
+                placeholder="localhost"
               />
               <p className="text-[10px] text-muted-foreground italic">
-                Usually 'host.docker.internal' to reach the host from Docker.
+                Use "localhost" (auto-resolves to Docker bridge gateway on Linux) or "host.docker.internal" (Docker Desktop).
               </p>
             </div>
             <div className="space-y-2">
@@ -6452,7 +6489,7 @@ export function TechnologiesTab() {
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, X, Shield, ShieldCheck, UserPlus, Settings2, Check, Users, Zap, ZapOff, KeyRound, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Trash2, X, Shield, ShieldCheck, UserPlus, Settings2, Check, Users, Zap, ZapOff, KeyRound, RefreshCw, Eye, EyeOff, Loader2 } from "lucide-react";
 import { api, useAuth } from "../../contexts/AuthContext";
 import { useSiteSettings } from "../../contexts/SiteSettingsContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -6789,24 +6826,29 @@ export function UsersTab() {
             <button
               disabled={!bulkTechId || bulkAssignTech.isPending}
               onClick={() => bulkAssignTech.mutate({ userIds: selectedIds, techId: Number(bulkTechId), isDefault: bulkSetDefault })}
-              className="rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5"
             >
-              Apply Tech
+              {bulkAssignTech.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              {bulkAssignTech.isPending ? "Assigning..." : "Apply Tech"}
             </button>
           </div>
           <div className="h-4 w-px bg-primary/20 hidden sm:block" />
           <div className="flex items-center gap-2">
             <button
+              disabled={bulkSetActive.isPending}
               onClick={() => bulkSetActive.mutate({ userIds: selectedIds, isActive: true })}
-              className="flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-bold text-success hover:bg-success/20"
+              className="flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-bold text-success hover:bg-success/20 disabled:opacity-50"
             >
-              <Zap className="h-3 w-3" /> Activate
+              {bulkSetActive.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              <Zap className="h-3 w-3" /> {bulkSetActive.isPending ? "Activating..." : "Activate"}
             </button>
             <button
+              disabled={bulkSetActive.isPending}
               onClick={() => bulkSetActive.mutate({ userIds: selectedIds, isActive: false })}
-              className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20"
+              className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20 disabled:opacity-50"
             >
-              <ZapOff className="h-3 w-3" /> Deactivate
+              {bulkSetActive.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              <ZapOff className="h-3 w-3" /> {bulkSetActive.isPending ? "Deactivating..." : "Deactivate"}
             </button>
           </div>
           <button onClick={clearSelection} className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground">Clear selection</button>

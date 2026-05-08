@@ -190,6 +190,7 @@ export interface SiteSettings {
   postfix_host: string;
   postfix_port: number;
   client_email: string;
+  test_email_recipient: string;
   email_template_enabled: boolean;
   email_template_subject: string;
   email_template_body: string;

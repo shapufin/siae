@@ -683,6 +683,9 @@ class TestEmailView(generics.GenericAPIView):
         conf = SiteSettings.load()
         brand = conf.brand_name or "Omni Calendar"
         
+        # Use test_email_recipient if configured, otherwise fallback to logged-in user's email
+        target_email = conf.test_email_recipient or user.email
+        
         # Allow overriding backend for testing
         requested_backend = request.data.get('backend')
         target_backend = requested_backend if requested_backend in ['smtp', 'postfix'] else conf.email_backend
@@ -691,7 +694,7 @@ class TestEmailView(generics.GenericAPIView):
         count = send_smtp_email(
             subject=f"Test Email ({backend_name}) from {brand}",
             body=f"This is a test email via {backend_name} to verify configuration.",
-            to_emails=[user.email],
+            to_emails=[target_email],
             force=True,
             backend_override=target_backend,
         )

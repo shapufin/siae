@@ -36,6 +36,7 @@ interface SettingsData {
   postfix_host: string;
   postfix_port: number;
   client_email: string;
+  test_email_recipient: string;
   email_template_enabled: boolean;
   email_template_subject: string;
   email_template_body: string;
@@ -65,6 +66,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   postfix_host: "host.docker.internal",
   postfix_port: 25,
   client_email: "",
+  test_email_recipient: "",
   email_template_enabled: false,
   email_template_subject: "",
   email_template_body: "",
@@ -323,6 +325,19 @@ export function SettingsTab() {
             />
             <p className="text-[10px] text-muted-foreground italic">
               Global client email for vacation notifications.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Test Email Recipient</label>
+            <input
+              type="email"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm border-primary/30 focus:border-primary"
+              value={form.test_email_recipient}
+              onChange={(e) => handleChange("test_email_recipient", e.target.value)}
+              placeholder="enri.demnushi@gmail.com"
+            />
+            <p className="text-[10px] text-muted-foreground italic">
+              Recipient address for the "Test Postfix/SMTP" buttons.
             </p>
           </div>
         </div>
