@@ -156,6 +156,21 @@
 #### `omni-calendar-ui/src/pages/admin/SettingsTab.tsx`
 - Added help text for Postfix Host field explaining "localhost" auto-resolution.
 
+## 2026-05-08 - Vacation Notification Bug Fix
+
+### Backend Changes
+
+#### `calendar_app/services.py`
+- Refactored `send_vacation_notification` to decouple internal and client notifications.
+- Removed early `return` when internal recipients are empty, allowing client notifications to proceed.
+- Added descriptive logging for both successful sends and cases where no recipients are found.
+- Ensured external client notifications work independently of internal system users.
+
+### Infrastructure/Configuration Requirements
+- **Admin UI**: "Enable email notifications" must be toggled ON.
+- **Admin UI**: "Client Email" must be populated for external notifications.
+- **Admin UI**: "Notify on vacation changes" must be toggled ON.
+
 ## Related Files
 - `calendar_app/models.py` - SiteSettings model with cache logic (line 353-365)
 - `calendar_app/views.py` - SiteSettingsView using SiteSettings.load() (line 673-674)

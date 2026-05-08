@@ -28,31 +28,33 @@ class NotificationService:
     def send_vacation_notification(cls, vacation: Vacation, action: str):
         conf = SiteSettings.load()
         if not conf.notifications_enabled or not conf.notify_on_vacation_change:
-            return
-
-        recipients = cls._get_opposite_role_recipients(vacation.user)
-        if not recipients:
+            logger.debug("Vacation notifications disabled in settings.")
             return
 
         user_name = vacation.user.get_full_name() or vacation.user.username
-        subject = f"[{conf.brand_name}] Vacation Updated: {user_name} ({action})"
-        body = (
-            f"Vacation update in {conf.brand_name}\n\n"
-            f"User: {user_name}\n"
-            f"Period: {vacation.start_date} to {vacation.end_date}\n"
-            f"Type: {vacation.get_type_display()}\n"
-            f"Action: {action}"
-        )
         
-        try:
-            send_smtp_email(subject, body, recipients)
-            logger.info(f"Vacation notification ({action}) sent for user {vacation.user.username}")
-        except Exception as e:
-            logger.error(f"Failed to send vacation notification: {e}")
+        # 1. Internal Notifications (notify opposite role)
+        recipients = cls._get_opposite_role_recipients(vacation.user)
+        if recipients:
+            subject = f"[{conf.brand_name}] Vacation Updated: {user_name} ({action})"
+            body = (
+                f"Vacation update in {conf.brand_name}\n\n"
+                f"User: {user_name}\n"
+                f"Period: {vacation.start_date} to {vacation.end_date}\n"
+                f"Type: {vacation.get_type_display()}\n"
+                f"Action: {action}"
+            )
+            
+            try:
+                send_smtp_email(subject, body, recipients)
+                logger.info(f"Internal vacation notification ({action}) sent for user {vacation.user.username} to {len(recipients)} recipients")
+            except Exception as e:
+                logger.error(f"Failed to send internal vacation notification: {e}")
+        else:
+            logger.info(f"No internal recipients found for vacation notification of user {vacation.user.username}")
 
-        # Client notification for ENG (Consultant) users
+        # 2. Client notification for ENG (Consultant) users
         if vacation.user.role == "ENG" and conf.client_email:
-            user_name = vacation.user.get_full_name() or vacation.user.username
             first_name = vacation.user.first_name or ""
             last_name = vacation.user.last_name or ""
             technology = vacation.user.default_technology.name if hasattr(vacation.user, 'default_technology') and vacation.user.default_technology else "N/A"
@@ -80,7 +82,7 @@ class NotificationService:
             try:
                 # Send HTML email to client
                 send_smtp_email(client_subject, "", [conf.client_email], html_body=html_body)
-                logger.info(f"Client vacation notification sent for user {vacation.user.username}")
+                logger.info(f"Client vacation notification sent for user {vacation.user.username} to {conf.client_email}")
             except Exception as e:
                 logger.error(f"Failed to send client vacation notification: {e}")
 
