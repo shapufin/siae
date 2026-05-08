@@ -57,7 +57,9 @@ class NotificationService:
         if vacation.user.role == "ENG" and conf.client_email:
             first_name = vacation.user.first_name or ""
             last_name = vacation.user.last_name or ""
-            technology = vacation.user.default_technology.name if hasattr(vacation.user, 'default_technology') and vacation.user.default_technology else "N/A"
+            
+            tech_obj = vacation.user.default_technology
+            technology = tech_obj.name if tech_obj else "N/A"
             
             # Use custom template if enabled
             custom_template = conf.email_template_body if conf.email_template_enabled else ""

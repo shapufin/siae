@@ -119,7 +119,7 @@ def send_smtp_email(
 
     msg = EmailMessage(
         subject=subject,
-        body=body,
+        body=html_body if html_body else body,
         from_email=conf.smtp_from_email or settings.DEFAULT_FROM_EMAIL,
         to=to_emails,
         connection=connection,

@@ -695,6 +695,7 @@ class TestEmailView(generics.GenericAPIView):
             subject=f"Test Email ({backend_name}) from {brand}",
             body=f"This is a test email via {backend_name} to verify configuration.",
             to_emails=[target_email],
+            html_body=f"<h1>Test Email</h1><p>This is a test email via <strong>{backend_name}</strong> to verify configuration.</p>",
             force=True,
             backend_override=target_backend,
         )

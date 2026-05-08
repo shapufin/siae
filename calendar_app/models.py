@@ -112,6 +112,12 @@ class CustomUser(AbstractUser):
     def is_eng(self) -> bool:
         return self.role == "ENG"
 
+    @property
+    def default_technology(self) -> Technology | None:
+        """Get the user's default technology."""
+        ut = self.usertechnology_set.filter(is_default=True).first()
+        return ut.technology if ut else self.technologies.first()
+
 
 class UserTechnology(models.Model):
     """Through model for User-Technology M2M with default flag."""

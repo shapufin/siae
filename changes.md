@@ -166,6 +166,22 @@
 - Added descriptive logging for both successful sends and cases where no recipients are found.
 - Ensured external client notifications work independently of internal system users.
 
+## 2026-05-08 - Email Content and Template Parsing Fix
+
+### Backend Changes
+
+#### `calendar_app/email.py`
+- Fixed `send_smtp_email` logic to correctly use `html_body` as the primary message content when provided. Previously, it would only set the subtype to "html" but kept using the plain text `body`, leading to empty or malformed emails when only HTML was intended.
+
+#### `calendar_app/models.py`
+- Added `default_technology` property to `CustomUser` model. This ensures that the notification service can reliably retrieve the user's primary technology for template substitution, preventing "N/A" or empty values in emails.
+
+#### `calendar_app/services.py`
+- Updated `send_vacation_notification` to use the new `default_technology` property and improved variable extraction for template rendering.
+
+#### `calendar_app/views.py`
+- Updated `TestEmailView` to include a proper HTML payload, ensuring that test emails are no longer empty and accurately represent the system's email capabilities.
+
 ### Infrastructure/Configuration Requirements
 - **Admin UI**: "Enable email notifications" must be toggled ON.
 - **Admin UI**: "Client Email" must be populated for external notifications.
