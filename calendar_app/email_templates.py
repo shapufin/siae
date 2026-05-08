@@ -2,11 +2,13 @@ from django.utils.safestring import mark_safe
 
 
 def _substitute_variables(template: str, **kwargs) -> str:
-    """Replace {variable} placeholders with actual values."""
+    """Replace {variable} placeholders with actual values and handle newlines."""
     result = template
     for key, value in kwargs.items():
         result = result.replace("{" + key + "}", str(value))
-    return result
+    
+    # Convert newlines to <br/> for HTML email if it's a custom template from a textarea
+    return result.replace("\n", "<br/>")
 
 
 def render_vacation_notification_html(
@@ -18,6 +20,7 @@ def render_vacation_notification_html(
     start_date: str,
     end_date: str,
     custom_template: str = "",
+    action: str = "created",
 ) -> str:
     """Renders a beautiful HTML email for vacation notifications.
     
@@ -35,10 +38,16 @@ def render_vacation_notification_html(
             vacation_type=vacation_type,
             start_date=start_date,
             end_date=end_date,
+            action=action.capitalize(),
         )
     
     # Default professional template
-    
+    intro_text = "This is to inform you that a consultant has scheduled vacation time."
+    if action == "deleted":
+        intro_text = "This is to inform you that a previously scheduled vacation has been cancelled/deleted."
+    elif action == "updated":
+        intro_text = "This is to inform you that a scheduled vacation has been updated."
+
     html_content = f"""
 <!DOCTYPE html>
 <html>
@@ -137,7 +146,7 @@ def render_vacation_notification_html(
         </div>
         <div class="content">
             <p class="intro">Hello,</p>
-            <p class="intro">This is to inform you that a consultant has scheduled vacation time.</p>
+            <p class="intro">{intro_text}</p>
             
             <div class="details-card">
                 <div class="detail-row">

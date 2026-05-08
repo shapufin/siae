@@ -187,6 +187,21 @@
 - **Admin UI**: "Client Email" must be populated for external notifications.
 - **Admin UI**: "Notify on vacation changes" must be toggled ON.
 
+## 2026-05-08 - Email Formatting and Deletion Logic Enhancements
+
+### Backend Changes
+
+#### `calendar_app/email_templates.py`
+- Updated `_substitute_variables` to automatically convert newlines (`\n`) to HTML line breaks (`<br/>`). This ensures that custom templates entered in the admin textarea maintain their formatting when sent as HTML emails.
+- Enhanced `render_vacation_notification_html` to accept an `action` parameter.
+- Added specialized intro text for "created", "updated", and "deleted" actions in the default professional template.
+
+#### `calendar_app/services.py`
+- Updated `send_vacation_notification` to pass the `action` ("created", "updated", "deleted") to the template renderer.
+- Implemented intelligent subject line handling for deletions:
+  - Default: Changes "Notification" to "Deleted" in the subject.
+  - Custom: Prefixes "CANCELLED: " to the subject if it's a deletion and the word "cancelled" or "deleted" isn't already present.
+
 ## Related Files
 - `calendar_app/models.py` - SiteSettings model with cache logic (line 353-365)
 - `calendar_app/views.py` - SiteSettingsView using SiteSettings.load() (line 673-674)

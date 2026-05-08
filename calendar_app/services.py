@@ -73,13 +73,18 @@ class NotificationService:
                 start_date=str(vacation.start_date),
                 end_date=str(vacation.end_date),
                 custom_template=custom_template,
+                action=action,
             )
             
             # Use custom subject if enabled, otherwise default
             if conf.email_template_enabled and conf.email_template_subject:
                 client_subject = conf.email_template_subject.replace("{brand_name}", conf.brand_name).replace("{first_name}", first_name).replace("{last_name}", last_name)
+                # If it's a deletion, prefix the custom subject if not already mentioned
+                if action == "deleted" and "deleted" not in client_subject.lower() and "cancel" not in client_subject.lower():
+                    client_subject = f"CANCELLED: {client_subject}"
             else:
-                client_subject = f"[{conf.brand_name}] Consultant Vacation Notification: {user_name}"
+                action_text = "Deleted" if action == "deleted" else "Notification"
+                client_subject = f"[{conf.brand_name}] Consultant Vacation {action_text}: {user_name}"
             
             try:
                 # Send HTML email to client
