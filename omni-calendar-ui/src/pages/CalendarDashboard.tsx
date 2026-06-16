@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarMonthView } from "../components/CalendarMonthView";
 import { DayDrawer } from "../components/DayDrawer";
@@ -24,10 +24,16 @@ export function CalendarDashboard() {
   const monthStartStr = format(monthStart, "yyyy-MM-dd");
   const monthEndStr = format(monthEnd, "yyyy-MM-dd");
 
+  // Query the full calendar grid range so padding days from adjacent months show data
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const gridStartStr = format(gridStart, "yyyy-MM-dd");
+  const gridEndStr = format(gridEnd, "yyyy-MM-dd");
+
   const { data: monthShifts } = useQuery<ShiftSummary[]>({
     queryKey: queryKeys.shifts.month(monthStartStr, monthEndStr, activeTechnology),
     queryFn: async () => {
-      let url = `/shifts/?date__gte=${monthStartStr}&date__lte=${monthEndStr}&page_size=${DEFAULT_PAGE_SIZE}&all=true`;
+      let url = `/shifts/?date__gte=${gridStartStr}&date__lte=${gridEndStr}&page_size=${DEFAULT_PAGE_SIZE}&all=true`;
       if (activeTechnology) {
         url += `&technology=${activeTechnology}`;
       }
@@ -37,7 +43,7 @@ export function CalendarDashboard() {
 
   const { data: monthVacations } = useQuery<Vacation[]>({
     queryKey: queryKeys.vacations.month(monthStartStr, monthEndStr),
-    queryFn: async () => unwrapResults(await api.get<Vacation[]>(`/vacations/?start_date__lte=${monthEndStr}&end_date__gte=${monthStartStr}&page_size=${DEFAULT_PAGE_SIZE}&all=true`)),
+    queryFn: async () => unwrapResults(await api.get<Vacation[]>(`/vacations/?start_date__lte=${gridEndStr}&end_date__gte=${gridStartStr}&page_size=${DEFAULT_PAGE_SIZE}&all=true`)),
   });
 
   const shiftsByDay = useMemo(() => {

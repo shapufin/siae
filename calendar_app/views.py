@@ -252,10 +252,21 @@ class VacationViewSet(viewsets.ModelViewSet):
         is_shared_view = any(p in self.request.query_params for p in ["month", "year", "start_date__lte", "end_date__gte", "all"])
         
         if user.is_admin or user.role == "CR" or is_shared_view:
-            return Vacation.objects.all()
-        if user.is_manager:
-            return Vacation.objects.filter(user__role=user.role)
-        return Vacation.objects.filter(user=user)
+            queryset = Vacation.objects.all()
+        elif user.is_manager:
+            queryset = Vacation.objects.filter(user__role=user.role)
+        else:
+            queryset = Vacation.objects.filter(user=user)
+
+        # Apply frontend date-range filters for calendar month views
+        start_date__lte = self.request.query_params.get("start_date__lte")
+        end_date__gte = self.request.query_params.get("end_date__gte")
+        if start_date__lte:
+            queryset = queryset.filter(start_date__lte=start_date__lte)
+        if end_date__gte:
+            queryset = queryset.filter(end_date__gte=end_date__gte)
+
+        return queryset
 
     @action(detail=False, methods=["post"])
     def overlapping(self, request: Any) -> Response:
@@ -360,6 +371,15 @@ class ShiftViewSet(viewsets.ModelViewSet):
         technology = self.request.query_params.get("technology")
         if technology:
             queryset = queryset.filter(technology_id=technology)
+
+        # Apply frontend date-range filters for calendar month views
+        date__gte = self.request.query_params.get("date__gte")
+        date__lte = self.request.query_params.get("date__lte")
+        if date__gte:
+            queryset = queryset.filter(date__gte=date__gte)
+        if date__lte:
+            queryset = queryset.filter(date__lte=date__lte)
+
         return queryset.order_by("-date", "technology__name")
 
     def get_serializer_context(self) -> dict[str, Any]:

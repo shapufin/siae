@@ -23,7 +23,7 @@ if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
 });
@@ -90,8 +90,6 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export { api };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
