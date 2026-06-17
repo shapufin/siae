@@ -5,7 +5,7 @@ import { getApiErrorMessage, dateRange } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
 import type { Vacation } from "../types";
 
-export interface VacationFormData {
+interface VacationFormData {
   user_id: string;
   start_date: string;
   end_date: string;

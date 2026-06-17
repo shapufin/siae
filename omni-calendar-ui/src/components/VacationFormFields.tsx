@@ -4,7 +4,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterv
 import { filterByRole, getDisplayName, VACATION_TYPE_OPTIONS } from "../lib/utils";
 import type { User, Vacation } from "../types";
 
-export interface VacationFormState {
+interface VacationFormState {
   user_id: string;
   start_date: string;
   end_date: string;

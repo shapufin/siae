@@ -1,7 +1,6 @@
 import { format, parseISO } from "date-fns";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { QueryClient } from "@tanstack/react-query";
 import type { User } from "../types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -120,17 +119,6 @@ export function getDomainColor(role: string) {
   }
 }
 
-export function getDomainLabel(role: string) {
-  switch (role) {
-    case "SIAE":
-      return "SIAE";
-    case "ENG":
-      return "ENG";
-    default:
-      return "CR";
-  }
-}
-
 export const VACATION_TYPE_OPTIONS = [
   { value: "PTO", label: "Paid Time Off" },
   { value: "SICK", label: "Sick Leave" },
@@ -150,24 +138,4 @@ export function dateRange(startStr: string, endStr: string): string[] {
   return dates;
 }
 
-export function makeMutationConfig(
-  qc: QueryClient,
-  showToast: (msg: string, type: "success" | "error" | "info") => void,
-  config: {
-    queryKey: string[];
-    successMessage: string;
-    errorMessage: string;
-    onSuccessExtra?: () => void;
-  }
-) {
-  return {
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: config.queryKey });
-      showToast(config.successMessage, "success");
-      config.onSuccessExtra?.();
-    },
-    onError: (err: unknown) => {
-      showToast(getApiErrorMessage(err, config.errorMessage), "error");
-    },
-  };
-}
+

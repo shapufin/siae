@@ -91,7 +91,3 @@ export function Tooltip({ children, content, side = "top", className }: TooltipP
     </>
   );
 }
-
-export function TooltipProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}

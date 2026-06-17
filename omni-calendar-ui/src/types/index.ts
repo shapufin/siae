@@ -168,11 +168,6 @@ export interface AdminDayPanelProps {
   }) => void;
 }
 
-export interface TechUserMapping {
-  techId: number;
-  userIds: number[];
-}
-
 export interface Vacation {
   id: number;
   user: User;
