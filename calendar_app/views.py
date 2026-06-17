@@ -10,6 +10,7 @@ from rest_framework import serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from .pagination import FlexiblePageNumberPagination
 from .email import send_smtp_email
 from .models import (
     Assignment,
@@ -243,6 +244,7 @@ class VacationViewSet(viewsets.ModelViewSet):
     queryset = Vacation.objects.select_related("user")
     serializer_class = VacationSerializer
     permission_classes = [IsOwnerOrAdmin]
+    pagination_class = FlexiblePageNumberPagination
 
     def get_queryset(self) -> QuerySet[Vacation]:
         """Filter vacations based on role-based domain access."""
@@ -303,6 +305,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
     """
     queryset = Shift.objects.all().order_by("-date", "technology__name")
     permission_classes = [CanEditShift]
+    pagination_class = FlexiblePageNumberPagination
 
     def get_serializer_class(self) -> type[drf_serializers.Serializer]:
         """Select serializer based on view action and detail context."""
