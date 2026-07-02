@@ -5,6 +5,7 @@ import { api, useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { cn, getApiErrorMessage, unwrapResults, getDisplayName, getDomainBadgeClass } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
+import { MAX_NOTES_LENGTH } from "../lib/constants";
 import type { Technology, User, CreateShiftDialogProps } from "../types";
 
 const COLOR_PALETTE = [
@@ -397,15 +398,31 @@ export function CreateShiftDialog({ date, onClose, defaultTechnologyId }: Create
           )}
 
           <div className="space-y-2">
-            <label htmlFor="shift-notes" className="text-sm font-medium">Notes</label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="shift-notes" className="text-sm font-medium">Notes</label>
+              <span
+                className={cn(
+                  "text-[10px]",
+                  notes.length > MAX_NOTES_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"
+                )}
+              >
+                {notes.length} / {MAX_NOTES_LENGTH}
+              </span>
+            </div>
             <textarea
               id="shift-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               rows={2}
+              maxLength={MAX_NOTES_LENGTH}
               placeholder="Optional notes..."
             />
+            {notes.length > MAX_NOTES_LENGTH && (
+              <p className="text-xs text-destructive">
+                Notes must be {MAX_NOTES_LENGTH} characters or fewer.
+              </p>
+            )}
           </div>
 
           {createShift.isError && (
@@ -426,7 +443,7 @@ export function CreateShiftDialog({ date, onClose, defaultTechnologyId }: Create
             </button>
             <button
               type="submit"
-              disabled={createShift.isPending || !technologyId || isNaN(Number(technologyId))}
+              disabled={createShift.isPending || !technologyId || isNaN(Number(technologyId)) || notes.length > MAX_NOTES_LENGTH}
               className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-all"
             >
               {createShift.isPending ? "Creating..." : "Create Shift"}

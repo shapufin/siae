@@ -4,13 +4,13 @@ from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
+from django.core.validators import RegexValidator
 from django.db.models import Q, QuerySet
+from django.utils.html import strip_tags
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.settings import api_settings
 
-from django.core.validators import RegexValidator
-from django.utils.html import strip_tags
 from .models import (
     Assignment,
     CustomUser,
@@ -24,6 +24,8 @@ from .models import (
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+MAX_NOTES_LENGTH = 5000
 
 
 class UserTechnologyUpdateMixin:
@@ -63,7 +65,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             # Enforce maximum limits for JWT lifetimes
             access_minutes = min(conf.jwt_access_minutes, 1440)  # Max 24 hours
             refresh_days = min(conf.jwt_refresh_days, 30)       # Max 30 days
-            
+
             access_lifetime = timedelta(minutes=access_minutes)
             refresh_lifetime = timedelta(days=refresh_days)
         except Exception as e:
@@ -326,7 +328,12 @@ class VacationSerializer(serializers.ModelSerializer):
     )
 
     def validate_notes(self, value: str) -> str:
-        return strip_tags(value) if value else value
+        value = strip_tags(value) if value else value
+        if value and len(value) > MAX_NOTES_LENGTH:
+            raise serializers.ValidationError(
+                f"Notes must be {MAX_NOTES_LENGTH} characters or fewer (currently {len(value)})."
+            )
+        return value
 
     class Meta:
         model = Vacation
@@ -439,7 +446,12 @@ class ShiftSerializer(serializers.ModelSerializer):
     auto_populate = serializers.BooleanField(write_only=True, required=False, default=False)
 
     def validate_notes(self, value: str) -> str:
-        return strip_tags(value) if value else value
+        value = strip_tags(value) if value else value
+        if value and len(value) > MAX_NOTES_LENGTH:
+            raise serializers.ValidationError(
+                f"Notes must be {MAX_NOTES_LENGTH} characters or fewer (currently {len(value)})."
+            )
+        return value
 
     class Meta:
         model = Shift
@@ -625,8 +637,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance: SiteSettings, validated_data: dict[str, Any]) -> SiteSettings:
-        from .email import _get_fernet, encrypt_password
         from django.core.cache import cache
+
+        from .email import _get_fernet, encrypt_password
         plain = validated_data.pop("smtp_password", None)
         if plain is not None:
             if plain and _get_fernet() is None:

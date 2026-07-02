@@ -2,6 +2,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Settings2, X } from "lucide-react";
 import { useShiftMutations } from "../hooks/useShiftMutations";
+import { cn } from "../lib/utils";
+import { MAX_NOTES_LENGTH } from "../lib/constants";
 
 interface Props {
   shift: { id: number; notes: string } | null;
@@ -41,19 +43,35 @@ export function EditShiftDialog({ shift, onClose }: Props) {
           className="p-6 space-y-4"
         >
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Notes
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Notes
+              </label>
+              <span
+                className={cn(
+                  "text-[10px]",
+                  notes.length > MAX_NOTES_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"
+                )}
+              >
+                {notes.length} / {MAX_NOTES_LENGTH}
+              </span>
+            </div>
             <textarea
               className="flex min-h-[120px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              maxLength={MAX_NOTES_LENGTH}
               placeholder="Update shift details..."
             />
+            {notes.length > MAX_NOTES_LENGTH && (
+              <p className="text-xs text-destructive">
+                Notes must be {MAX_NOTES_LENGTH} characters or fewer.
+              </p>
+            )}
           </div>
           <button
             type="submit"
-            disabled={editShift.isPending}
+            disabled={editShift.isPending || notes.length > MAX_NOTES_LENGTH}
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50"
           >
             {editShift.isPending ? "Saving..." : "Save Notes"}

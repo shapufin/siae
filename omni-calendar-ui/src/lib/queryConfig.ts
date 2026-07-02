@@ -5,11 +5,12 @@
 
 export const defaultQueryConfig = {
   retry: (failureCount: number, error: any) => {
-    // Don't retry on 401 (auth errors), 403 (permission), 404 (not found)
+    // Don't retry on 401 (auth errors), 403 (permission), 404 (not found), 429 (throttled)
     // as these are client-side errors that retrying won't fix.
     if (error?.response?.status === 401 || 
         error?.response?.status === 403 || 
-        error?.response?.status === 404) {
+        error?.response?.status === 404 ||
+        error?.response?.status === 429) {
       return false;
     }
     // Retry up to 3 times for other errors (e.g. 500, network issues)
@@ -26,8 +27,8 @@ export const defaultQueryConfig = {
 export const criticalQueryConfig = {
   ...defaultQueryConfig,
   retry: (failureCount: number, error: any) => {
-    // Still don't retry 404 for critical data
-    if (error?.response?.status === 404) return false;
+    // Still don't retry 404 or 429 for critical data
+    if (error?.response?.status === 404 || error?.response?.status === 429) return false;
     // But allow more attempts (5) for other transient errors
     return failureCount < 5;
   },

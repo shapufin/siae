@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Shield, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, parseISO, startOfWeek, endOfWeek } from "date-fns";
-import { filterByRole, getDisplayName, VACATION_TYPE_OPTIONS } from "../lib/utils";
+import { cn, filterByRole, getDisplayName, VACATION_TYPE_OPTIONS } from "../lib/utils";
+import { MAX_NOTES_LENGTH } from "../lib/constants";
 import type { User, Vacation } from "../types";
 
 interface VacationFormState {
@@ -184,13 +185,29 @@ export function VacationFormFields({
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Notes</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Notes</label>
+            <span
+              className={cn(
+                "text-[10px]",
+                (value.notes || "").length > MAX_NOTES_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"
+              )}
+            >
+              {(value.notes || "").length} / {MAX_NOTES_LENGTH}
+            </span>
+          </div>
           <textarea
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             value={value.notes || ""}
             onChange={(e) => onChange({ ...value, notes: e.target.value })}
             rows={1}
+            maxLength={MAX_NOTES_LENGTH}
           />
+          {(value.notes || "").length > MAX_NOTES_LENGTH && (
+            <p className="text-xs text-destructive">
+              Notes must be {MAX_NOTES_LENGTH} characters or fewer.
+            </p>
+          )}
         </div>
       </div>
     </div>

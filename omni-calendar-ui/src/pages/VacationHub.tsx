@@ -6,6 +6,7 @@ import { getDisplayName, unwrapResults } from "../lib/utils";
 import { useVacationMutations } from "../hooks/useVacationMutations";
 import { VacationFormFields } from "../components/VacationFormFields";
 import { VacationCardGroup } from "../components/VacationCardGroup";
+import { MAX_NOTES_LENGTH } from "../lib/constants";
 import type { Vacation, User } from "../types";
 
 export function VacationHub() {
@@ -66,7 +67,7 @@ export function VacationHub() {
             currentRole={user?.role}
             showUserSelect={isAdminOrManager}
           />
-          <button type="submit" disabled={update.isPending} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          <button type="submit" disabled={update.isPending || (editing?.notes || "").length > MAX_NOTES_LENGTH} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
             {update.isPending ? "Saving..." : "Save Changes"}
           </button>
         </form>
@@ -82,7 +83,7 @@ export function VacationHub() {
               showUserSelect={isAdminOrManager}
               currentUserName={user?.username}
             />
-            <button type="submit" disabled={create.isPending} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+            <button type="submit" disabled={create.isPending || form.notes.length > MAX_NOTES_LENGTH} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
               {create.isPending ? "Submitting..." : "Add Vacation"}
             </button>
           </form>

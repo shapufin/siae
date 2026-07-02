@@ -5,7 +5,7 @@ import { X, CalendarRange, Users, Info, Check } from "lucide-react";
 import { api, useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { cn, getApiErrorMessage, getDisplayName, unwrapResults, filterByRole, dateRange } from "../../lib/utils";
-import { DEFAULT_PAGE_SIZE } from "../../lib/constants";
+import { DEFAULT_PAGE_SIZE, MAX_NOTES_LENGTH } from "../../lib/constants";
 import { queryKeys } from "../../lib/queryKeys";
 import { CalendarMonthView } from "../../components/CalendarMonthView";
 import { AdminDayPanel } from "../../components/AdminDayPanel";
@@ -372,13 +372,29 @@ export function ShiftsTab() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Internal Notes</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Internal Notes</label>
+                  <span
+                    className={cn(
+                      "text-[10px]",
+                      form.notes.length > MAX_NOTES_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"
+                    )}
+                  >
+                    {form.notes.length} / {MAX_NOTES_LENGTH}
+                  </span>
+                </div>
                 <textarea
                   className="flex min-h-[40px] w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  maxLength={MAX_NOTES_LENGTH}
                   placeholder="Optional shift notes..."
                 />
+                {form.notes.length > MAX_NOTES_LENGTH && (
+                  <p className="text-xs text-destructive">
+                    Notes must be {MAX_NOTES_LENGTH} characters or fewer.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -435,7 +451,7 @@ export function ShiftsTab() {
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                disabled={createShifts.isPending || !form.technology_id}
+                disabled={createShifts.isPending || !form.technology_id || form.notes.length > MAX_NOTES_LENGTH}
                 className="rounded-lg bg-primary px-10 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50"
               >
                 {createShifts.isPending ? "Generating Shifts..." : "Generate Schedule"}

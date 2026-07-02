@@ -367,6 +367,19 @@ class SiteSettings(models.Model):
         if not re.match(rate_pattern, self.user_throttle_rate):
             raise ValidationError({"user_throttle_rate": "Invalid rate format. Use 'num/period' (e.g., '1000/hour')."})
 
+        # Enforce minimum sane rates so a typo/copy-paste cannot lock the app
+        def _rate_num(rate: str) -> int:
+            return int(rate.split("/")[0])
+
+        if _rate_num(self.anon_throttle_rate) < 5:
+            raise ValidationError(
+                {"anon_throttle_rate": "Anonymous rate must allow at least 5 req/period."}
+            )
+        if _rate_num(self.user_throttle_rate) < 60:
+            raise ValidationError(
+                {"user_throttle_rate": "Authenticated rate must allow at least 60 req/period."}
+            )
+
         # Validate JWT lifetimes
         if not (1 <= self.jwt_access_minutes <= 1440):
             raise ValidationError({"jwt_access_minutes": "Access token lifetime must be between 1 and 1440 minutes (24 hours)."})

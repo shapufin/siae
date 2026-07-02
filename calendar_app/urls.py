@@ -6,6 +6,16 @@ from rest_framework_simplejwt.views import (
 )
 
 from . import views
+from .throttling import LoginRateThrottle
+
+
+class TokenObtainPairThrottledView(TokenObtainPairView):
+    throttle_classes = [LoginRateThrottle]
+
+
+class TokenRefreshThrottledView(TokenRefreshView):
+    throttle_classes = [LoginRateThrottle]
+
 
 router = DefaultRouter()
 router.register(r"technologies", views.TechnologyViewSet, basename="technology")
@@ -20,10 +30,10 @@ urlpatterns = [
     path("", include(router.urls)), # Keep legacy root access for now
     path("v1/health/", views.HealthCheckView.as_view(), name="health_check_v1"),
     path("health/", views.HealthCheckView.as_view(), name="health_check"),
-    path("v1/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair_v1"),
-    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("v1/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh_v1"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("v1/auth/token/", TokenObtainPairThrottledView.as_view(), name="token_obtain_pair_v1"),
+    path("auth/token/", TokenObtainPairThrottledView.as_view(), name="token_obtain_pair"),
+    path("v1/auth/token/refresh/", TokenRefreshThrottledView.as_view(), name="token_refresh_v1"),
+    path("auth/token/refresh/", TokenRefreshThrottledView.as_view(), name="token_refresh"),
     path(
         "v1/default-crew/<int:pk>/",
         views.DefaultCrewView.as_view(),

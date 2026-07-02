@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -175,6 +176,9 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
     },
 }
+
+# Login throttle rate (no migration required; overrides the hardcoded default)
+LOGIN_THROTTLE_RATE = os.getenv("LOGIN_THROTTLE_RATE", "100/minute")
 
 # Simple JWT
 from datetime import timedelta

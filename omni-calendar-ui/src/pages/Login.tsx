@@ -23,8 +23,12 @@ export function Login() {
       // if App.tsx handles default landing.
       // However, if we want specific redirect for CR:
       navigate("/"); 
-    } catch (err) {
-      setError("Invalid username or password.");
+    } catch (err: any) {
+      if (err?.response?.status === 429) {
+        setError("Too many login attempts. Please wait a minute and try again.");
+      } else {
+        setError("Invalid username or password.");
+      }
     } finally {
       setIsLoading(false);
     }
