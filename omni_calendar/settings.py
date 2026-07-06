@@ -177,16 +177,15 @@ REST_FRAMEWORK = {
     },
 }
 
-# Login throttle rate (no migration required; overrides the hardcoded default)
-LOGIN_THROTTLE_RATE = os.getenv("LOGIN_THROTTLE_RATE", "100/minute")
-
 # Simple JWT
 from datetime import timedelta
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": True,
+    # Disabled on this private network so the same user can be logged in from
+    # multiple browsers/tabs without one refresh invalidating another session.
+    "ROTATE_REFRESH_TOKENS": False,
     "TOKEN_OBTAIN_SERIALIZER": "calendar_app.serializers.CustomTokenObtainPairSerializer",
 }
 

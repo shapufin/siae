@@ -94,3 +94,13 @@ class APITests(APITestCase):
         user = DynamicUserRateThrottle()
         self.assertEqual(anon.get_rate(), "200/day")
         self.assertEqual(user.get_rate(), "500/hour")
+
+    def test_login_endpoints_are_not_throttled(self):
+        """Login and refresh endpoints are intentionally unthrottled on this private network."""
+        url = reverse("token_obtain_pair")
+        for _ in range(3):
+            response = self.client.post(url, {
+                "username": "admin",
+                "password": "adminpassword123",
+            })
+            self.assertEqual(response.status_code, status.HTTP_200_OK)

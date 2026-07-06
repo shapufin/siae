@@ -35,20 +35,4 @@ class DynamicUserRateThrottle(UserRateThrottle):
             return "1000/hour"
 
 
-class LoginRateThrottle(AnonRateThrottle):
-    """
-    Dedicated throttle for login/token endpoints.
-    Separated from the global dynamic anon throttle so that API abuse
-    cannot accidentally lock users out of authentication.
-    Rate is configurable via the LOGIN_THROTTLE_RATE environment variable.
-    """
-    scope = "login"
 
-    def get_rate(self) -> str | None:
-        from django.conf import settings
-        return getattr(settings, "LOGIN_THROTTLE_RATE", "100/minute")
-
-    def get_cache_key(self, request, view) -> str:
-        # Use a distinct cache key so login attempts do not share the bucket
-        # with the global anonymous API throttle.
-        return f"throttle_{self.scope}_{self.get_ident(request)}"

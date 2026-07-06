@@ -1,5 +1,51 @@
 # Changes Log
 
+## 2026-07-06 - Remove Login Throttle & Enable Multi-Session Login
+
+### Context
+- User decided to remove the login throttle completely because the app runs on a private network.
+- User also requested that the same user be allowed to log in from multiple sessions (browsers/tabs) simultaneously without one session invalidating another.
+- Working tree was restored to the last committed state (`HEAD`, commit `84348ec`) before making changes because several files had been corrupted and contained syntax errors.
+
+### Backend Changes
+
+#### `calendar_app/throttling.py`
+- Removed `LoginRateThrottle` class entirely.
+- Kept `DynamicAnonRateThrottle` and `DynamicUserRateThrottle` for general API endpoints.
+
+#### `calendar_app/urls.py`
+- Replaced `TokenObtainPairThrottledView` / `TokenRefreshThrottledView` with `UnthrottledTokenObtainPairView` / `UnthrottledTokenRefreshView`.
+- Set `throttle_classes = []` on both token views so login and refresh are not throttled.
+- Kept the global `DEFAULT_THROTTLE_CLASSES` away from the token endpoints, preventing the `100/day` anonymous throttle from locking users out.
+
+#### `omni_calendar/settings.py`
+- Removed `LOGIN_THROTTLE_RATE` setting and env var lookup.
+- Changed `SIMPLE_JWT["ROTATE_REFRESH_TOKENS"]` from `True` to `False` so that refreshing an access token does not invalidate the refresh token, allowing multiple simultaneous sessions for the same user.
+
+#### `.env.example`
+- Removed `LOGIN_THROTTLE_RATE` documentation.
+
+#### `calendar_app/tests/test_api.py`
+- Removed `APIRequestFactory` and `LoginRateThrottle` imports.
+- Removed throttle-specific tests.
+- Added `test_login_endpoints_are_not_throttled` to verify that repeated login attempts succeed without throttling.
+
+### Frontend Changes
+
+#### `omni-calendar-ui/src/pages/Login.tsx`
+- Removed the 429-specific error message since login no longer returns `429`.
+- Generic "Invalid username or password" message remains.
+
+### Security Note
+- This removes brute-force protection on the login endpoint. Acceptable only because the app runs on a trusted private network.
+- Refresh tokens are no longer rotated, so a leaked refresh token can be reused until expiry. Mitigated by the private-network assumption.
+
+### Verification
+- `python manage.py check` ✅
+- `python manage.py test calendar_app.tests.test_api` ✅ (7/7)
+- `python manage.py test` ⚠️ 1 pre-existing failure (`test_siae_user_can_create_shift`) — unrelated.
+- `npm run build` ✅
+
 ## 2026-05-07 - Settings Persistence Bug Fix
 
 ### Backend Changes
