@@ -9,6 +9,7 @@
 ### Root Cause
 1. **Pagination**: `VacationViewSet` had `pagination_class = FlexiblePageNumberPagination` added in commit `1305130`. Global `PAGE_SIZE` is `50`, so `/vacations/` was returning only the 50 newest vacations. `VacationHub.tsx` calls `/vacations/` with no `page_size`, so any vacation beyond the first 50 was hidden. `ShiftsTab.tsx` already avoided this by passing `page_size=1000`, which is why vacations appeared correctly in shift/calendar views.
 2. **Manager visibility**: `VacationHub.tsx` labels the list as "All Vacations" for managers, but the backend was filtering managers to see only vacations of users with the same role. For an SIAE manager with no SIAE vacations (but with ENG vacations visible in notifications), the page appeared empty.
+3. **Frontend cache**: `VacationHub.tsx` used the default `staleTime` of 5 minutes from `QueryClient`. If the page had been loaded before the manager role was assigned or before the backend fix was deployed, the empty result stayed cached for 5 minutes, making the page appear empty even though the backend was now correct.
 
 ### Backend Changes
 
@@ -17,6 +18,12 @@
 - `VacationViewSet` now returns the full, flat list of vacations again, matching the pre-`1305130` behavior.
 - Changed `get_queryset` so managers (like admins and CR users) see **all** vacations, matching the "All Vacations" UI label. Regular users still see only their own vacations.
 - `ShiftViewSet` pagination was left unchanged because `ShiftsTab.tsx` already requests `page_size=1000`.
+
+### Frontend Changes
+
+#### `omni-calendar-ui/src/pages/VacationHub.tsx`
+- Switched the vacations query key to `queryKeys.vacations.all` so it matches the invalidation keys used by `useVacationMutations`.
+- Set `staleTime: 0` so the vacation list always refetches when the user navigates to the page or returns to the browser tab, preventing stale empty results.
 
 ### Verification
 - `python manage.py check` ✅

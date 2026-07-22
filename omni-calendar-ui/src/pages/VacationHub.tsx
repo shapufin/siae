@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, LayoutGrid, Table2 } from "lucide-react";
 import { api, useAuth } from "../contexts/AuthContext";
 import { getDisplayName, unwrapResults } from "../lib/utils";
+import { queryKeys } from "../lib/queryKeys";
 import { useVacationMutations } from "../hooks/useVacationMutations";
 import { VacationFormFields } from "../components/VacationFormFields";
 import { VacationCardGroup } from "../components/VacationCardGroup";
@@ -25,8 +26,9 @@ export function VacationHub() {
   });
 
   const { data: vacations, isLoading } = useQuery<Vacation[]>({
-    queryKey: ["vacations"],
+    queryKey: queryKeys.vacations.all,
     queryFn: async () => unwrapResults(await api.get<Vacation[]>("/vacations/")),
+    staleTime: 0,
   });
 
   const canManage = (v: Vacation) => isAdmin || (isManager && v.user.role === user?.role) || v.user.id === user?.id;
