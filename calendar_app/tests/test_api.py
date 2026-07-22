@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from ..models import CustomUser, Shift, SiteSettings, Technology
+from ..models import CustomUser, Shift, SiteSettings, Technology, Vacation
 from ..throttling import DynamicAnonRateThrottle, DynamicUserRateThrottle
 
 
@@ -113,3 +113,32 @@ class APITests(APITestCase):
         self.assertIsInstance(response.data, list)
         self.assertNotIn("results", response.data)
         self.assertNotIn("count", response.data)
+
+    def test_manager_sees_all_vacations(self):
+        """A manager should see all vacations, not just their own role's."""
+        from django.contrib.auth.models import Group
+
+        manager_group, _ = Group.objects.get_or_create(name="Manager")
+        siae_manager = CustomUser.objects.create_user(
+            username="siae_manager", password="password123", email="siae_manager@example.com", role="SIAE"
+        )
+        siae_manager.groups.add(manager_group)
+
+        siae_user = CustomUser.objects.create_user(
+            username="siae_user", password="password123", email="siae_user@example.com", role="SIAE"
+        )
+        eng_user = CustomUser.objects.create_user(
+            username="eng_user", password="password123", email="eng_user@example.com", role="ENG"
+        )
+
+        siae_vacation = Vacation.objects.create(user=siae_user, start_date="2026-07-01", end_date="2026-07-05", type="PTO")
+        eng_vacation = Vacation.objects.create(user=eng_user, start_date="2026-07-10", end_date="2026-07-15", type="PTO")
+
+        self.client.force_authenticate(user=siae_manager)
+        url = reverse("vacation-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), 2)
+        returned_ids = {v["id"] for v in response.data}
+        self.assertEqual(returned_ids, {siae_vacation.id, eng_vacation.id})

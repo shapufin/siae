@@ -253,10 +253,8 @@ class VacationViewSet(viewsets.ModelViewSet):
         # Detection of shared dashboard view (date range or explicit all parameter)
         is_shared_view = any(p in self.request.query_params for p in ["month", "year", "start_date__lte", "end_date__gte", "all"])
         
-        if user.is_admin or user.role == "CR" or is_shared_view:
+        if user.is_admin or user.is_manager or user.role == "CR" or is_shared_view:
             queryset = Vacation.objects.all()
-        elif user.is_manager:
-            queryset = Vacation.objects.filter(user__role=user.role)
         else:
             queryset = Vacation.objects.filter(user=user)
 

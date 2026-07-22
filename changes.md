@@ -7,16 +7,15 @@
 - Suspected pagination or a per-page limit.
 
 ### Root Cause
-- `VacationViewSet` had `pagination_class = FlexiblePageNumberPagination` added in commit `1305130`.
-- Global `PAGE_SIZE` is `50`, so `/vacations/` was returning only the 50 newest vacations.
-- `VacationHub.tsx` calls `/vacations/` with no date range and no `page_size` parameter, so any vacation beyond the first 50 (or any user whose vacations fell outside those 50) was hidden.
-- `ShiftsTab.tsx` already avoided this by passing `page_size=1000`, which is why vacations appeared correctly in the shift/calendar views.
+1. **Pagination**: `VacationViewSet` had `pagination_class = FlexiblePageNumberPagination` added in commit `1305130`. Global `PAGE_SIZE` is `50`, so `/vacations/` was returning only the 50 newest vacations. `VacationHub.tsx` calls `/vacations/` with no `page_size`, so any vacation beyond the first 50 was hidden. `ShiftsTab.tsx` already avoided this by passing `page_size=1000`, which is why vacations appeared correctly in shift/calendar views.
+2. **Manager visibility**: `VacationHub.tsx` labels the list as "All Vacations" for managers, but the backend was filtering managers to see only vacations of users with the same role. For an SIAE manager with no SIAE vacations (but with ENG vacations visible in notifications), the page appeared empty.
 
 ### Backend Changes
 
 #### `calendar_app/views.py`
 - Removed `pagination_class = FlexiblePageNumberPagination` from `VacationViewSet`.
 - `VacationViewSet` now returns the full, flat list of vacations again, matching the pre-`1305130` behavior.
+- Changed `get_queryset` so managers (like admins and CR users) see **all** vacations, matching the "All Vacations" UI label. Regular users still see only their own vacations.
 - `ShiftViewSet` pagination was left unchanged because `ShiftsTab.tsx` already requests `page_size=1000`.
 
 ### Verification
