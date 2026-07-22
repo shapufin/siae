@@ -250,10 +250,15 @@ class VacationViewSet(viewsets.ModelViewSet):
         """Filter vacations based on role-based domain access."""
         user = self.request.user
         
-        # Detection of shared dashboard view (date range or explicit all parameter)
-        is_shared_view = any(p in self.request.query_params for p in ["month", "year", "start_date__lte", "end_date__gte", "all"])
-        
-        if user.is_admin or user.is_manager or user.role == "CR" or is_shared_view:
+        # Date-range filters are used by shared calendar views. The explicit
+        # all flag is only honored for users already allowed to view shared data.
+        is_shared_view = any(
+            p in self.request.query_params
+            for p in ["month", "year", "start_date__lte", "end_date__gte"]
+        )
+        can_view_all = user.is_admin or user.is_manager or user.role == "CR"
+
+        if can_view_all or is_shared_view:
             queryset = Vacation.objects.all()
         else:
             queryset = Vacation.objects.filter(user=user)

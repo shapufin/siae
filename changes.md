@@ -1,5 +1,35 @@
 # Changes Log
 
+## 2026-07-06 - Vacation Hub Manager Diagnostics and Visibility Hardening
+
+### Confirmed Diagnosis
+- The local database contains an ENG vacation and the `siae` account is a SIAE user in the `Manager` group.
+- An authenticated request as that account to `/api/vacations/?all=true` returns the ENG vacation with HTTP 200.
+- Therefore, the current checkout's backend manager path is working. If the deployed page remains empty, the deployed frontend/backend build or the deployed account's `Manager` group differs from the local checkout.
+
+### Backend Changes
+
+#### `calendar_app/views.py`
+- Restricted the `all=true` shared-list override so it cannot grant a regular user access to all vacations.
+- Admins, managers, and CR users continue to receive all vacations.
+- Regular users continue to receive only their own vacations, even if they send `?all=true`.
+
+### Frontend Changes
+
+#### `omni-calendar-ui/src/pages/VacationHub.tsx`
+- Requests the shared vacation endpoint with `?all=true`; the backend now enforces whether that scope is allowed.
+- Added explicit API error rendering and a retry button so a failed request is no longer displayed as a misleading empty list.
+- Added a scope-specific query key to avoid mixing manager and regular-user responses.
+
+### Verification
+- Local `siae` manager: `is_manager=True`, group `Manager`, `/api/vacations/?all=true` returned the ENG vacation ✅
+- `python manage.py check` ✅ (existing model primary-key warnings only)
+- `python manage.py test calendar_app.tests.test_api` ✅ (10/10)
+- `npm run build` ✅
+
+### Deployment Requirement
+- Rebuild/redeploy both backend and frontend, then log out and back in as the manager. The manager account must show `permissions.is_manager=true` from `/api/users/me/` and must belong to the exact Django group `Manager`.
+
 ## 2026-07-06 - Fix Vacation Hub Missing Vacations
 
 ### Context

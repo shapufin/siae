@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, LayoutGrid, Table2 } from "lucide-react";
 import { api, useAuth } from "../contexts/AuthContext";
-import { getDisplayName, unwrapResults } from "../lib/utils";
+import { getApiErrorMessage, getDisplayName, unwrapResults } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
 import { useVacationMutations } from "../hooks/useVacationMutations";
 import { VacationFormFields } from "../components/VacationFormFields";
@@ -25,9 +25,9 @@ export function VacationHub() {
     enabled: isAdminOrManager,
   });
 
-  const { data: vacations, isLoading } = useQuery<Vacation[]>({
-    queryKey: queryKeys.vacations.all,
-    queryFn: async () => unwrapResults(await api.get<Vacation[]>("/vacations/")),
+  const { data: vacations, isLoading, isError, error, refetch } = useQuery<Vacation[]>({
+    queryKey: [...queryKeys.vacations.all, "shared"],
+    queryFn: async () => unwrapResults(await api.get<Vacation[]>("/vacations/?all=true")),
     staleTime: 0,
   });
 
@@ -105,6 +105,13 @@ export function VacationHub() {
 
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : isError ? (
+          <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+            <p className="text-destructive">Unable to load vacations: {getApiErrorMessage(error, "The server request failed.")}</p>
+            <button type="button" onClick={() => refetch()} className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">
+              Try again
+            </button>
+          </div>
         ) : view === "cards" && groupedVacations && Object.keys(groupedVacations).length > 0 ? (
           <VacationCardGroup
             groupedVacations={groupedVacations}

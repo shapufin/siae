@@ -142,3 +142,21 @@ class APITests(APITestCase):
         self.assertEqual(len(response.data), 2)
         returned_ids = {v["id"] for v in response.data}
         self.assertEqual(returned_ids, {siae_vacation.id, eng_vacation.id})
+
+    def test_regular_user_cannot_expand_vacation_visibility(self):
+        """The shared-list flag must not expose other users' vacations."""
+        own_vacation = Vacation.objects.create(
+            user=self.user, start_date="2026-07-01", end_date="2026-07-05", type="PTO"
+        )
+        other_user = CustomUser.objects.create_user(
+            username="other_user", password="password123", email="other@example.com", role="ENG"
+        )
+        other_vacation = Vacation.objects.create(
+            user=other_user, start_date="2026-07-10", end_date="2026-07-15", type="PTO"
+        )
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse("vacation-list") + "?all=true")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual({v["id"] for v in response.data}, {own_vacation.id})
+        self.assertNotIn(other_vacation.id, {v["id"] for v in response.data})
