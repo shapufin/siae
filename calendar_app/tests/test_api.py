@@ -104,3 +104,12 @@ class APITests(APITestCase):
                 "password": "adminpassword123",
             })
             self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_vacation_list_returns_flat_array(self):
+        """Vacation list should not be paginated; it returns the full flat array."""
+        url = reverse("vacation-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, list)
+        self.assertNotIn("results", response.data)
+        self.assertNotIn("count", response.data)

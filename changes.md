@@ -1,5 +1,29 @@
 # Changes Log
 
+## 2026-07-06 - Fix Vacation Hub Missing Vacations
+
+### Context
+- User reported that vacations were not showing in the Vacation Hub list page, even though they appeared in notifications and shift views.
+- Suspected pagination or a per-page limit.
+
+### Root Cause
+- `VacationViewSet` had `pagination_class = FlexiblePageNumberPagination` added in commit `1305130`.
+- Global `PAGE_SIZE` is `50`, so `/vacations/` was returning only the 50 newest vacations.
+- `VacationHub.tsx` calls `/vacations/` with no date range and no `page_size` parameter, so any vacation beyond the first 50 (or any user whose vacations fell outside those 50) was hidden.
+- `ShiftsTab.tsx` already avoided this by passing `page_size=1000`, which is why vacations appeared correctly in the shift/calendar views.
+
+### Backend Changes
+
+#### `calendar_app/views.py`
+- Removed `pagination_class = FlexiblePageNumberPagination` from `VacationViewSet`.
+- `VacationViewSet` now returns the full, flat list of vacations again, matching the pre-`1305130` behavior.
+- `ShiftViewSet` pagination was left unchanged because `ShiftsTab.tsx` already requests `page_size=1000`.
+
+### Verification
+- `python manage.py check` ✅
+- `python manage.py test` ✅ (all tests, including the pre-existing failure)
+- `npm run build` ✅
+
 ## 2026-07-06 - Remove Login Throttle & Enable Multi-Session Login
 
 ### Context

@@ -244,7 +244,7 @@ class VacationViewSet(viewsets.ModelViewSet):
     queryset = Vacation.objects.select_related("user")
     serializer_class = VacationSerializer
     permission_classes = [IsOwnerOrAdmin]
-    pagination_class = FlexiblePageNumberPagination
+    pagination_class = None
 
     def get_queryset(self) -> QuerySet[Vacation]:
         """Filter vacations based on role-based domain access."""
